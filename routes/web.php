@@ -25,10 +25,27 @@ Route::view('/', 'welcome', [
 
             return ['key' => 'hour-'.$hour, 'file' => $files[$hour], 'minutes' => $hour * 60, 'weather' => 'clear', 'label' => 'Clear '.$period, 'alt' => 'Golden Gate Bridge in '.$light[$hour].' at '.$hour.':00, AI-edited example'];
         }, range(0, 23)),
-        ['key' => 'rain', 'file' => 'bridge-rain', 'minutes' => 840, 'weather' => 'rain', 'label' => 'Rainy afternoon', 'alt' => 'Golden Gate Bridge with wet roads and afternoon rain, AI-edited example'],
-        ['key' => 'snow', 'file' => 'bridge-snow', 'minutes' => 840, 'weather' => 'snow', 'label' => 'Snowy afternoon', 'alt' => 'Golden Gate Bridge with an imagined light afternoon snowfall, AI-edited example'],
-        ['key' => 'fog', 'file' => 'bridge-fog', 'minutes' => 420, 'weather' => 'fog', 'label' => 'Foggy morning', 'alt' => 'Golden Gate Bridge emerging from morning sea mist, AI-edited example'],
-        ['key' => 'storm', 'file' => 'bridge-storm', 'minutes' => 900, 'weather' => 'storm', 'label' => 'Stormy afternoon', 'alt' => 'Golden Gate Bridge in heavy rain beneath storm clouds and a distant lightning bolt, static AI-edited example'],
+        ...array_merge(...array_map(function (string $weather): array {
+            $hours = [0, 7, $weather === 'storm' ? 15 : 14, 19];
+            $periods = ['night', 'morning', 'day', 'evening'];
+            $adjective = ['rain' => 'Rainy', 'snow' => 'Snowy', 'fog' => 'Foggy', 'storm' => 'Stormy'][$weather];
+
+            return array_map(function (int $index) use ($weather, $hours, $periods, $adjective): array {
+                $hour = $hours[$index];
+                $period = $periods[$index];
+                $isExistingFrame = ($weather === 'fog' && $hour === 7) || ($weather !== 'fog' && $index === 2);
+                $file = 'bridge-'.$weather.($isExistingFrame ? '' : '-'.$period);
+
+                return [
+                    'key' => $weather.'-'.$hour,
+                    'file' => $file,
+                    'minutes' => $hour * 60,
+                    'weather' => $weather,
+                    'label' => $adjective.' '.($period === 'day' ? 'afternoon' : $period),
+                    'alt' => 'Golden Gate Bridge in '.$weather.' at '.$hour.':00 with '.$period.' light, AI-edited example',
+                ];
+            }, range(0, 3));
+        }, ['rain', 'snow', 'fog', 'storm'])),
     ],
     'wildPrompt' => 'Turn the bay into a sky garden. Keep the bridge. Let koi swim through clouds, with giant water lilies and floating islands.',
     'wildFrames' => array_map(fn (int $hour): array => [

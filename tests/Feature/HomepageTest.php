@@ -57,15 +57,27 @@ class HomepageTest extends TestCase
         $this->assertCount(24, $clearFrames);
         $this->assertCount(24, array_unique(array_column($clearFrames, 'file')));
         $this->assertSame(range(0, 23), array_map(fn (array $frame): int => $frame['minutes'] / 60, $clearFrames));
-        $this->assertContains('storm', array_column($frames, 'weather'));
+        foreach (['rain', 'snow', 'fog', 'storm'] as $weather) {
+            $weatherFrames = array_values(array_filter($frames, fn (array $frame): bool => $frame['weather'] === $weather));
+            $this->assertCount(4, $weatherFrames);
+            $this->assertCount(4, array_unique(array_column($weatherFrames, 'file')));
+            $this->assertSame(0, $weatherFrames[0]['minutes']);
+            $this->assertSame(1140, $weatherFrames[3]['minutes']);
+        }
         $wildFrames = $response->viewData('wildFrames');
         $this->assertCount(24, $wildFrames);
         $this->assertCount(24, array_unique(array_column($wildFrames, 'file')));
         foreach ([...$frames, ...$wildFrames] as $frame) {
+            $this->assertFileExists(public_path('examples/'.$frame['file'].'-640.avif'));
+            $this->assertLessThan(50000, filesize(public_path('examples/'.$frame['file'].'-640.avif')));
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-1280.avif'));
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-1280.webp'));
         }
-        $response->assertSee('max="23" step="1"', false)
+        $response->assertSee('max="24" step="any"', false)
+            ->assertSee('id="wild-scrubber"', false)
+            ->assertSee('aria-label="Pause the day"', false)
+            ->assertSee('aria-label="Pause the sky garden"', false)
+            ->assertSeeText('This demo blends example images')
             ->assertSeeText('Turn the bay into a sky garden')
             ->assertSeeText('each new wallpaper is a separate OpenAI request');
     }

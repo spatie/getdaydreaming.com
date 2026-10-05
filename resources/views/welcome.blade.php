@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#112737">
+    <meta name="theme-color" content="#fffcf6">
     <meta name="description" content="Keep the scene. Change the atmosphere. Daydreaming reimagines your picture for the time and weather, using your own OpenAI API key. Coming soon for Mac.">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Daydreaming for Mac">
@@ -24,6 +24,7 @@
         const clearPhotoFrames = photoFrames.filter(frame => frame.weather === 'clear');
         function formatExampleTime(minutes) {
             const clock = new Date();
+            minutes = Math.round(minutes);
             clock.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
             return clock.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         }
@@ -40,7 +41,7 @@
         preload.as = 'image';
         preload.type = 'image/avif';
         preload.imageSrcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
-        preload.imageSizes = '100vw';
+        preload.imageSizes = '(max-width: 700px) 100vw, 56vw';
         preload.fetchPriority = 'high';
         document.head.append(preload);
     </script>
@@ -77,8 +78,8 @@
                 <figure class="preview" id="preview">
                     <div class="scene" id="scene" data-weather="clear">
                         <picture class="hero-photo">
-                            <source id="scene-avif" type="image/avif" sizes="100vw">
-                            <source id="scene-webp" type="image/webp" sizes="100vw">
+                            <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, 56vw">
+                            <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, 56vw">
                             <img id="scene-image" alt="Golden Gate Bridge example" width="1536" height="1024" fetchpriority="high" decoding="async">
                         </picture>
                         <script>
@@ -99,13 +100,14 @@
                     <div class="day-controls container">
                         <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
                         <div class="scene-caption">
+                            <button class="play-toggle" type="button" data-play="hero" aria-label="Pause the day"><svg class="play-symbol" viewBox="0 0 24 24" aria-hidden="true"><path data-play-icon d="M7 5v14M17 5v14"></path></svg><span data-play-label>Pause</span></button>
                             <span id="scene-time"></span>
                             <span id="scene-weather"></span>
                         </div>
                         <div class="time-selector">
                             <label class="sr-only" for="day-scrubber">Choose an hour of the day</label>
-                            <input id="day-scrubber" type="range" min="0" max="23" step="1" value="0" aria-controls="scene">
-                            <div class="time-labels" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>11 PM</span></div>
+                            <input id="day-scrubber" type="range" min="0" max="24" step="any" value="0" aria-controls="scene">
+                            <div class="time-labels" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>12 AM</span></div>
                         </div>
                         <div class="weather-buttons" role="group" aria-label="Choose weather">
                             @foreach(['clear' => 'Clear', 'rain' => 'Rain', 'snow' => 'Snow', 'fog' => 'Fog', 'storm' => 'Storm'] as $weather => $label)
@@ -127,7 +129,7 @@
                         document.getElementById('scene').dataset.frame = initialPhotoFrame.key;
                     </script>
                     <noscript><p class="no-script-note">Original Golden Gate Bridge photo. Enable JavaScript to explore the examples.</p></noscript>
-                    <figcaption class="preview-note">Example variations made for this website with an AI image model. Not created by the Daydreaming app.</figcaption>
+                    <figcaption class="preview-note">Example variations made for this website with an AI image model. Not created by the Daydreaming app.<span class="demo-note">The app updates at the times you choose. This demo blends example images.</span></figcaption>
                 </figure>
             </section>
 
@@ -186,6 +188,14 @@
                     </picture>
                     <noscript><img src="{{ asset('examples/bridge-wild-12-1280.webp') }}" alt="Golden Gate Bridge at noon in a sky garden with floating koi and giant lilies, AI-edited example" width="1536" height="1024" loading="lazy"></noscript>
                     <figcaption id="wild-caption">Sky garden example</figcaption>
+                    <div class="wild-controls">
+                        <button class="play-toggle" type="button" data-play="wild" aria-label="Pause the sky garden"><svg class="play-symbol" viewBox="0 0 24 24" aria-hidden="true"><path data-play-icon d="M7 5v14M17 5v14"></path></svg><span data-play-label>Pause</span></button>
+                        <div class="time-selector">
+                            <label class="sr-only" for="wild-scrubber">Explore the sky garden through the day</label>
+                            <input id="wild-scrubber" type="range" min="0" max="24" step="any" value="12" aria-controls="wild-image">
+                            <div class="time-labels" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>12 AM</span></div>
+                        </div>
+                    </div>
                 </figure>
                 <div class="wild-grid" role="group" aria-label="Sky garden examples for all 24 hours">
                     @foreach($wildFrames as $frame)
