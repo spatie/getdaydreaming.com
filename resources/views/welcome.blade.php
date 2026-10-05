@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-photo-demo>
+<html lang="en" class="no-js" data-photo-demo>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,13 +19,22 @@
     <title>Daydreaming for Mac | Keep the scene. Change the atmosphere.</title>
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('daydreaming-favicon.png') }}">
     <script>
+        document.documentElement.classList.remove('no-js');
+        const photoFrames = @json($photoFrames);
+        const clearPhotoFrames = photoFrames.filter(frame => frame.weather === 'clear');
+        function formatExampleTime(minutes) {
+            const clock = new Date();
+            clock.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+            return clock.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
         const hour = new Date().getHours();
-        const initialFrame = hour < 5 || hour >= 21 ? 3 : hour < 10 ? 0 : hour < 17 ? 1 : 2;
+        const initialFrame = hour;
         document.documentElement.dataset.initialFrame = initialFrame;
-        document.documentElement.dataset.dayPeriod = ['morning', 'day', 'golden', 'night'][initialFrame];
-        const initialPhoto = ['bridge-morning', 'bridge-day', 'bridge-evening', 'bridge-night'][initialFrame];
+        document.documentElement.dataset.dayPeriod = hour < 5 || hour >= 21 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'day' : 'golden';
+        const initialPhotoFrame = clearPhotoFrames[initialFrame];
+        const initialPhoto = initialPhotoFrame.file;
         const photoBase = @json(asset('examples'));
-        const photoWidths = initialFrame === 1 ? [640, 960, 1280, 1920, 2560] : [640, 960, 1280, 1536];
+        const photoWidths = [640, 960, 1280, 1536];
         const preload = document.createElement('link');
         preload.rel = 'preload';
         preload.as = 'image';
@@ -76,6 +85,7 @@
                             document.getElementById('scene-avif').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
                             document.getElementById('scene-webp').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.webp ' + width + 'w').join(', ');
                             document.getElementById('scene-image').src = photoBase + '/' + initialPhoto + '-1280.webp';
+                            document.getElementById('scene-image').alt = initialPhotoFrame.alt;
                         </script>
                         <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
                         <div class="original-photo">
@@ -87,24 +97,36 @@
                         </div>
                     </div>
                     <div class="day-controls container">
-                        <div class="scene-caption" aria-live="polite" aria-atomic="true">
-                            <span id="scene-time">19:00</span>
-                            <span id="scene-weather">Clear evening</span>
+                        <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
+                        <div class="scene-caption">
+                            <span id="scene-time"></span>
+                            <span id="scene-weather"></span>
                         </div>
                         <div class="time-selector">
-                            <label class="sr-only" for="day-scrubber">Choose one of four times of day</label>
-                            <input id="day-scrubber" type="range" min="0" max="3" step="1" value="2" aria-controls="scene" aria-valuetext="19:00, clear evening">
-                            <div class="time-labels" aria-hidden="true"><span>Dawn</span><span>Noon</span><span>Dusk</span><span>Night</span></div>
+                            <label class="sr-only" for="day-scrubber">Choose an hour of the day</label>
+                            <input id="day-scrubber" type="range" min="0" max="23" step="1" value="0" aria-controls="scene">
+                            <div class="time-labels" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>11 PM</span></div>
                         </div>
                         <div class="weather-buttons" role="group" aria-label="Choose weather">
-                            @foreach(['clear' => 'Clear', 'rain' => 'Rain', 'snow' => 'Snow', 'fog' => 'Fog'] as $weather => $label)
-                                <button type="button" data-weather-choice="{{ $weather }}" aria-label="{{ $label }} weather" aria-pressed="{{ $weather === 'clear' ? 'true' : 'false' }}">
+                            @foreach(['clear' => 'Clear', 'rain' => 'Rain', 'snow' => 'Snow', 'fog' => 'Fog', 'storm' => 'Storm'] as $weather => $label)
+                                <button type="button" data-weather-choice="{{ $weather }}" aria-label="{{ $label }} weather example" aria-pressed="{{ $weather === 'clear' ? 'true' : 'false' }}">
                                     @include('weatherIcon', ['weather' => $weather])
                                     <span>{{ $label }}</span>
                                 </button>
                             @endforeach
                         </div>
                     </div>
+                    <p id="scene-announcement" class="sr-only" role="status"></p>
+                    <script>
+                        const initialTime = formatExampleTime(initialPhotoFrame.minutes);
+                        document.getElementById('desktop-clock').textContent = initialTime;
+                        document.getElementById('scene-time').textContent = initialTime;
+                        document.getElementById('scene-weather').textContent = initialPhotoFrame.label + ' example';
+                        document.getElementById('day-scrubber').value = initialFrame;
+                        document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialPhotoFrame.label.toLowerCase() + ' example');
+                        document.getElementById('scene').dataset.frame = initialPhotoFrame.key;
+                    </script>
+                    <noscript><p class="no-script-note">Original Golden Gate Bridge photo. Enable JavaScript to explore the examples.</p></noscript>
                     <figcaption class="preview-note">Example variations made for this website with an AI image model. Not created by the Daydreaming app.</figcaption>
                 </figure>
             </section>
@@ -121,22 +143,31 @@
                     </li>
                     <li>
                         <h3>Connect OpenAI</h3>
-                        <p>Add your own OpenAI API key. AI reimagines your picture for the time of day and local weather. Your key stays in macOS Keychain.</p>
+                        <p>Add your own OpenAI API key. OpenAI reimagines your picture for the time of day and local weather. Your key stays in macOS Keychain.</p>
                     </li>
                     <li>
-                        <h3>Allow local weather</h3>
-                        <p>Use local weather, or choose the weather yourself. Choose Start Daydreaming when you’re ready, then pick how often your wallpaper changes.</p>
+                        <h3>Start Daydreaming</h3>
+                        <p>Use local weather or choose your own, then pick how often your wallpaper changes.</p>
                     </li>
                 </ol>
 
-                <figure class="app-window mock-window" aria-label="App design preview. Example wallpaper edited for this website">
+                <figure class="app-window mock-window" aria-label="App design preview with a prompt and hour slider">
                     <div class="window-toolbar" aria-hidden="true"><span></span><span></span><span></span></div>
                     <div class="window-scene">
                         <picture>
                             <source type="image/avif" srcset="{{ asset('examples/bridge-evening-640.avif') }} 640w, {{ asset('examples/bridge-evening-1280.avif') }} 1280w" sizes="(max-width: 700px) calc(100vw - 40px), 850px">
                             <img src="{{ asset('examples/bridge-evening-1280.webp') }}" alt="AI-edited evening bridge wallpaper in a preview of the app design" width="1536" height="1024" loading="lazy" decoding="async" fetchpriority="low">
                         </picture>
-                        <div class="window-status">Clear evening · updated 19:02 <span aria-hidden="true">···</span></div>
+                        <div class="window-panel" aria-hidden="true">
+                            <div class="window-prompt"><span>Keep the scene. Add warm evening light.</span><span>More</span></div>
+                            <div class="window-actions">
+                                <div class="window-hour-selector">
+                                    <div class="window-hour-track"><span></span></div>
+                                    <div class="window-hour-labels"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+                                </div>
+                                <div class="window-current"><span>Clear evening · updated 19:02</span><span class="window-create">Create Now</span></div>
+                            </div>
+                        </div>
                     </div>
                     <figcaption>App design preview. Example wallpaper edited for this website.</figcaption>
                 </figure>
@@ -144,32 +175,35 @@
 
             <section class="details-section container section" aria-labelledby="details-title">
                 <div class="section-heading">
-                    <h2 id="details-title">Any picture. Any style.</h2>
+                    <h2 id="details-title">Or write your own.</h2>
+                    <p>Type it in the prompt in Daydreaming’s main window. Or go further. Keep the bridge and change everything else.</p>
                 </div>
-                <div class="landmark-examples">
-                    @foreach($photoExamples as $example)
-                        <figure class="landmark-example">
-                            <h3>{{ $example['name'] }}</h3>
-                            <div class="example-pair">
-                                <figure>
-                                    <picture>
-                                        <source type="image/avif" srcset="{{ asset('examples/'.$example['original'].'-640.avif') }} 640w, {{ asset('examples/'.$example['original'].'-1280.avif') }} 1280w" sizes="(max-width: 700px) calc((100vw - 54px) / 2), 550px">
-                                        <img src="{{ asset('examples/'.$example['original'].'-1280.webp') }}" srcset="{{ asset('examples/'.$example['original'].'-640.webp') }} 640w, {{ asset('examples/'.$example['original'].'-1280.webp') }} 1280w" sizes="(max-width: 700px) calc((100vw - 54px) / 2), 550px" alt="Original {{ $example['name'] }} photograph" width="1280" height="{{ $example['height'] }}" loading="lazy" decoding="async" fetchpriority="low">
-                                    </picture>
-                                    <figcaption>Original</figcaption>
-                                </figure>
-                                <figure>
-                                    <picture>
-                                        <source type="image/avif" srcset="{{ asset('examples/'.$example['edited'].'-640.avif') }} 640w, {{ asset('examples/'.$example['edited'].'-1280.avif') }} 1280w" sizes="(max-width: 700px) calc((100vw - 54px) / 2), 550px">
-                                        <img src="{{ asset('examples/'.$example['edited'].'-1280.webp') }}" srcset="{{ asset('examples/'.$example['edited'].'-640.webp') }} 640w, {{ asset('examples/'.$example['edited'].'-1280.webp') }} 1280w" sizes="(max-width: 700px) calc((100vw - 54px) / 2), 550px" alt="{{ $example['alt'] }}" width="1280" height="{{ $example['height'] }}" loading="lazy" decoding="async" fetchpriority="low">
-                                    </picture>
-                                    <figcaption>{{ $example['label'] }}</figcaption>
-                                </figure>
-                            </div>
-                        </figure>
+                <p class="custom-prompt">{{ $wildPrompt }}</p>
+                <div class="wild-layout">
+                <figure class="wild-preview">
+                    <picture>
+                        <img id="wild-image" alt="Sky garden example loading" width="1536" height="1024" loading="lazy" decoding="async">
+                    </picture>
+                    <noscript><img src="{{ asset('examples/bridge-wild-12-1280.webp') }}" alt="Golden Gate Bridge at noon in a sky garden with floating koi and giant lilies, AI-edited example" width="1536" height="1024" loading="lazy"></noscript>
+                    <figcaption id="wild-caption">Sky garden example</figcaption>
+                </figure>
+                <div class="wild-grid" role="group" aria-label="Sky garden examples for all 24 hours">
+                    @foreach($wildFrames as $frame)
+                        <button type="button" data-wild-hour="{{ $frame['hour'] }}" aria-pressed="{{ $frame['hour'] === 12 ? 'true' : 'false' }}" tabindex="{{ $frame['hour'] === 12 ? '0' : '-1' }}">
+                            <picture>
+                                <source type="image/avif" data-srcset="{{ asset('examples/'.$frame['file'].'-360.avif') }}">
+                                <img data-src="{{ asset('examples/'.$frame['file'].'-360.webp') }}" alt="{{ $frame['alt'] }}" width="360" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                            </picture>
+                            <span data-hour-label>{{ str_pad((string) $frame['hour'], 2, '0', STR_PAD_LEFT) }}:00</span>
+                        </button>
                     @endforeach
                 </div>
+                </div>
+                <p id="wild-status" class="sr-only" role="status"></p>
+                <p id="wild-feedback" class="wild-cost" role="status" hidden></p>
                 <p class="example-disclosure">Example variations made for this website with an AI image model. Not created by the Daydreaming app.</p>
+                <p class="wild-cost">In the app, each new wallpaper is a separate OpenAI request, billed to your account.</p>
+                <script type="application/json" id="wild-frames">@json($wildFrames)</script>
                 <h2 class="mac-details-heading">Made for your Mac.</h2>
                 <div class="product-details">
                     <article>
@@ -180,12 +214,13 @@
                             <svg viewBox="0 0 24 24"><path d="M12 2v20M3 7l18 10M3 17 21 7M9 4l3 3 3-3M9 20l3-3 3 3" /></svg>
                             <svg viewBox="0 0 24 24"><path d="M20 16A9 9 0 0 1 8 4a9 9 0 1 0 12 12Z" /></svg>
                         </div>
+                        @include('weatherIcon', ['weather' => 'storm'])
                         <h3>The weather, at a glance</h3>
                         <p>The menu bar icon follows the weather. Automatic updates work while the app is running, with optional launch at login.</p>
                     </article>
                     <article>
                         <h3>Pick a style</h3>
-                        <p>Natural, Subtle, Watercolor, or Cinematic. Add a touch of your own. The time and weather come along automatically.</p>
+                        <p>Natural, Subtle, Watercolor, or Cinematic. Write your own instructions in the prompt. Time and weather are included automatically.</p>
                     </article>
                     <article>
                         <h3>Across every screen</h3>
@@ -218,7 +253,7 @@
                         <article>
                             <div>
                                 <h3>Sent directly to OpenAI</h3>
-                                <p>To make a new wallpaper, your picture, style and instructions go directly to OpenAI, with the local time and weather. OpenAI bills your account for each new picture. Saved matches return without a new image call.</p>
+                                <p>To make a new wallpaper, your picture, style and instructions go directly to OpenAI, with the local time and weather.</p>
                             </div>
                         </article>
                         <article>
@@ -247,7 +282,7 @@
                         <div>
                             <p>Daydreaming is free while in preview. Every schedule is available, and you can create a wallpaper anytime.</p>
                             <p>Use your own OpenAI API key. OpenAI bills your account directly for each new wallpaper. Usage is <a href="https://help.openai.com/en/articles/9039756-managing-billing-for-chatgpt-and-the-api-platform">billed separately from ChatGPT subscriptions</a>. Picture quality, model, and picture size affect cost. See <a href="https://openai.com/api/pricing/">OpenAI’s API pricing</a>.</p>
-                            <p>Choose a schedule from 5 minutes to 24 hours, including custom intervals. Set a daily safety limit from 1 to 288; new installs start at 24. A 5-minute schedule can request up to 288 new wallpapers a day. Turning on automatic updates checks immediately and can create a new wallpaper.</p>
+                            <p>Choose a schedule from 5 minutes to 24 hours, including custom intervals. Set a daily safety limit from 1 to 288; new installs start at 24. A 5-minute schedule can request up to 288 new wallpapers a day. The limit counts submitted requests, including attempts that may have been billed even if they fail. Turning on automatic updates checks immediately and can create a new wallpaper.</p>
                         </div>
                     </details>
                     <details>
@@ -265,13 +300,13 @@
                     <details>
                         <summary>Can I use it without sharing my location?<span aria-hidden="true">+</span></summary>
                         <div>
-                            <p>Yes. Choose a fixed weather condition in Settings. Automatic weather requires location permission and sends coordinates rounded to two decimal places to MET Norway. The forecast is cached between checks.</p>
+                            <p>Yes. Choose a fixed weather condition in Customize. Automatic weather requires location permission and sends coordinates rounded to two decimal places to MET Norway. The forecast is cached between checks.</p>
                         </div>
                     </details>
                     <details>
                         <summary>Can I give it my own direction?<span aria-hidden="true">+</span></summary>
                         <div>
-                            <p>Yes. Pick a style (Natural, Subtle, Watercolor, or Cinematic) and add anything else you’d like, such as falling leaves. Time and weather are included automatically. You can also connect text from a file or an HTTPS page, preview it, and include it in the instructions sent to OpenAI. Up to five sources are supported; website scripts are not run.</p>
+                            <p>Yes. Pick Natural, Subtle, Watercolor, or Cinematic in Customize, and write your own instructions in the main window’s prompt. Time and weather are included automatically. Mention a public HTTPS page or drop a text, Markdown, HTML, or JSON file into the prompt. Daydreaming reads its text before each new wallpaper, with up to three sources. Typed file paths ask for permission first; website scripts are not run.</p>
                         </div>
                     </details>
                     <details>
@@ -286,27 +321,25 @@
 
         <footer class="site-footer container">
             <a class="brand footer-brand" href="{{ route('home') }}"><img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="24" height="24"><span>Daydreaming</span></a>
-            <span>© {{ date('Y') }} Daydreaming</span>
             <span class="weather-credit">App weather: <a href="https://www.met.no/en">MET Norway</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></span>
             <a href="#privacy-title">Privacy</a>
         </footer>
-        <p class="photo-credits container">Original photos:
+        <p class="photo-credits container">
             @foreach($photoCredits as $credit)
-                <a href="{{ $credit['source'] }}">{{ $credit['author'] }}</a>
-                @if($credit['license'] === 'CC0')
-                    (<a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>)
-                @else
-                    ({{ $credit['license'] }})
-                @endif
-                @if(!$loop->last), @endif
+                {{ $credit['picture'] }} photo: <a href="{{ $credit['source'] }}">{{ $credit['author'] }}</a>
+                (<a href="{{ $credit['licenseUrl'] }}">{{ $credit['license'] }}</a>).
             @endforeach
-            Example edits made for this website. No claim to original U.S. Government works.
+            Example edits made for this website.
         </p>
         <script id="photo-frames" type="application/json">{!! json_encode($photoFrames, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
         <script id="photo-base" type="application/json">@json(asset('examples'))</script>
-        @foreach(['clear', 'rain', 'snow', 'fog', 'night'] as $weather)
+        @foreach(['clear', 'rain', 'snow', 'fog', 'storm', 'night'] as $weather)
             <template data-icon-template="{{ $weather }}">@include('weatherIcon', ['weather' => $weather])</template>
         @endforeach
+        <script>
+            const initialIcon = document.querySelector('[data-icon-template="' + (initialPhotoFrame.minutes < 300 || initialPhotoFrame.minutes >= 1260 ? 'night' : 'clear') + '"]');
+            document.getElementById('desktop-weather-icon').replaceChildren(initialIcon.content.cloneNode(true));
+        </script>
     </div>
 </body>
 </html>
