@@ -72,6 +72,11 @@
 
         <main id="main" tabindex="-1">
             <section class="hero" aria-labelledby="hero-title">
+                <div class="night-sky" aria-hidden="true">
+                    <span class="moon"></span>
+                    <span class="shooting-star shooting-star-one"></span>
+                    <span class="shooting-star shooting-star-two"></span>
+                </div>
                 <div class="hero-copy container">
                     <p class="release-note">Coming soon for Mac</p>
                     <h1 id="hero-title">Keep the scene.<br>Change the atmosphere.</h1>
@@ -91,10 +96,34 @@
                             <img id="scene-image" alt="Golden Gate Bridge example" width="1536" height="1024" fetchpriority="high" decoding="async">
                         </picture>
                         <script>
-                            document.getElementById('scene-avif').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
-                            document.getElementById('scene-webp').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.webp ' + width + 'w').join(', ');
-                            document.getElementById('scene-image').src = photoBase + '/' + initialPhoto + '-1280.webp';
-                            document.getElementById('scene-image').alt = initialPhotoFrame.alt;
+                            {
+                                const sceneImage = document.getElementById('scene-image');
+                                const scene = document.getElementById('scene');
+                                let decoded = false;
+                                sceneImage.addEventListener('error', () => {
+                                    const avifSource = document.getElementById('scene-avif');
+                                    if (avifSource.srcset) {
+                                        avifSource.removeAttribute('srcset');
+                                    } else {
+                                        sceneImage.style.visibility = 'hidden';
+                                    }
+                                });
+                                sceneImage.addEventListener('load', () => {
+                                    sceneImage.decode().then(() => {
+                                        decoded = true;
+                                        scene.style.backgroundImage = 'none';
+                                    }).catch(() => {});
+                                });
+                                document.getElementById('scene-avif').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
+                                document.getElementById('scene-webp').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.webp ' + width + 'w').join(', ');
+                                sceneImage.src = photoBase + '/' + initialPhoto + '-1280.webp';
+                                sceneImage.alt = initialPhotoFrame.alt;
+                                setTimeout(() => {
+                                    if (!decoded) {
+                                        scene.style.backgroundImage = 'url("' + photoBase + '/' + initialPhoto + '-640.webp")';
+                                    }
+                                }, 150);
+                            }
                         </script>
                         <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
                         <div class="original-photo">
@@ -104,11 +133,24 @@
                             </picture>
                             <span>Original</span>
                         </div>
+                        <script>
+                            {
+                                const originalImage = document.getElementById('original-image');
+                                originalImage.addEventListener('error', () => {
+                                    const avifSource = document.getElementById('original-avif');
+                                    if (avifSource.srcset) {
+                                        avifSource.dataset.failed = 'true';
+                                        avifSource.removeAttribute('srcset');
+                                    } else {
+                                        originalImage.style.visibility = 'hidden';
+                                    }
+                                });
+                            }
+                        </script>
                     </div>
                     <div class="day-controls container">
                         <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
                         <div class="scene-caption">
-                            <button class="play-toggle" type="button" data-play="hero" aria-label="Pause the day"><svg class="play-symbol" viewBox="0 0 24 24" aria-hidden="true"><path data-play-icon d="M7 5v14M17 5v14"></path></svg><span data-play-label>Pause</span></button>
                             <span id="scene-time"></span>
                             <span id="scene-weather"></span>
                         </div>
@@ -137,7 +179,7 @@
                         document.getElementById('scene').dataset.frame = initialPhotoFrame.key;
                     </script>
                     <noscript><p class="no-script-note">Original Golden Gate Bridge photo. Enable JavaScript to explore the examples.</p></noscript>
-                    <figcaption class="preview-note">Example variations made for this website with an AI image model. Not created by the Daydreaming app.<span class="demo-note">The app updates at the times you choose. This demo blends example images.</span></figcaption>
+                    <figcaption class="preview-note">Example variations made for this website with an AI image model. Not created by the Daydreaming app.<span class="demo-note">The app updates at the times you choose. This demo blends example images. Move the slider to stop the preview.</span></figcaption>
                 </figure>
             </section>
 
@@ -161,67 +203,30 @@
                     </li>
                 </ol>
 
-                <figure class="app-window mock-window" aria-label="App design preview with a prompt and hour slider">
-                    <div class="window-toolbar" aria-hidden="true"><span></span><span></span><span></span></div>
-                    <div class="window-scene">
-                        <picture>
-                            <source type="image/avif" srcset="{{ asset('examples/bridge-evening-640.avif') }} 640w, {{ asset('examples/bridge-evening-1280.avif') }} 1280w" sizes="(max-width: 700px) calc(100vw - 40px), 850px">
-                            <img src="{{ asset('examples/bridge-evening-1280.webp') }}" alt="AI-edited evening bridge wallpaper in a preview of the app design" width="1536" height="1024" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                        <div class="window-panel" aria-hidden="true">
-                            <div class="window-prompt"><span>Keep the scene. Add warm evening light.</span><span>More</span></div>
-                            <div class="window-actions">
-                                <div class="window-hour-selector">
-                                    <div class="window-hour-track"><span></span></div>
-                                    <div class="window-hour-labels"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
-                                </div>
-                                <div class="window-current"><span>Clear evening · updated 19:02</span><span class="window-create">Create Now</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <figcaption>App design preview. Example wallpaper edited for this website.</figcaption>
-                </figure>
             </section>
 
             <section class="details-section container section" aria-labelledby="details-title">
                 <div class="section-heading">
                     <h2 id="details-title">Or write your own.</h2>
-                    <p>Type it in the prompt in Daydreaming’s main window. Or go further. Keep the bridge and change everything else.</p>
+                    <p>Keep the bridge, then change the world around it. A few words in the prompt can take the same picture somewhere entirely new.</p>
                 </div>
-                <p class="custom-prompt">{{ $wildPrompt }}</p>
-                <div class="wild-layout">
-                <figure class="wild-preview">
-                    <picture>
-                        <img id="wild-image" alt="Sky garden example loading" width="1536" height="1024" loading="lazy" decoding="async">
-                    </picture>
-                    <noscript><img src="{{ asset('examples/bridge-wild-12-1280.webp') }}" alt="Golden Gate Bridge at noon in a sky garden with floating koi and giant lilies, AI-edited example" width="1536" height="1024" loading="lazy"></noscript>
-                    <figcaption id="wild-caption">Sky garden example</figcaption>
-                    <div class="wild-controls">
-                        <button class="play-toggle" type="button" data-play="wild" aria-label="Pause the sky garden"><svg class="play-symbol" viewBox="0 0 24 24" aria-hidden="true"><path data-play-icon d="M7 5v14M17 5v14"></path></svg><span data-play-label>Pause</span></button>
-                        <div class="time-selector">
-                            <label class="sr-only" for="wild-scrubber">Explore the sky garden through the day</label>
-                            <input id="wild-scrubber" type="range" min="0" max="24" step="any" value="12" aria-controls="wild-image">
-                            <div class="time-labels" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>12 AM</span></div>
-                        </div>
-                    </div>
-                </figure>
-                <div class="wild-grid" role="group" aria-label="Sky garden examples for all 24 hours">
-                    @foreach($wildFrames as $frame)
-                        <button type="button" data-wild-hour="{{ $frame['hour'] }}" aria-pressed="{{ $frame['hour'] === 12 ? 'true' : 'false' }}" tabindex="{{ $frame['hour'] === 12 ? '0' : '-1' }}">
+                <div class="prompt-stack">
+                    @foreach($promptExamples as $example)
+                        <article class="prompt-card">
                             <picture>
-                                <source type="image/avif" data-srcset="{{ asset('examples/'.$frame['file'].'-360.avif') }}">
-                                <img data-src="{{ asset('examples/'.$frame['file'].'-360.webp') }}" alt="{{ $frame['alt'] }}" width="360" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                                <img src="{{ asset('examples/'.$example['file'].'-1280.webp') }}" srcset="{{ asset('examples/'.$example['file'].'-640.webp') }} 640w, {{ asset('examples/'.$example['file'].'-960.webp') }} 960w, {{ asset('examples/'.$example['file'].'-1280.webp') }} 1280w, {{ asset('examples/'.$example['file'].'-1536.webp') }} 1536w" sizes="(max-width: 700px) calc(100vw - 40px), 580px" alt="{{ $example['alt'] }}" width="1536" height="1024" loading="lazy" decoding="async" fetchpriority="low">
                             </picture>
-                            <span data-hour-label>{{ str_pad((string) $frame['hour'], 2, '0', STR_PAD_LEFT) }}:00</span>
-                        </button>
+                            <div class="prompt-card-copy">
+                                <span class="prompt-number">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }} / {{ count($promptExamples) }}</span>
+                                <h3>{{ $example['title'] }}</h3>
+                                <p>{{ $example['prompt'] }}</p>
+                            </div>
+                        </article>
                     @endforeach
                 </div>
-                </div>
-                <p id="wild-status" class="sr-only" role="status"></p>
-                <p id="wild-feedback" class="wild-cost" role="status" hidden></p>
+                <p class="prompt-location">Write your prompt in Daydreaming’s main window.</p>
                 <p class="example-disclosure">Example variations made for this website with an AI image model. Not created by the Daydreaming app.</p>
-                <p class="wild-cost">In the app, each new wallpaper is a separate OpenAI request, billed to your account.</p>
-                <script type="application/json" id="wild-frames">@json($wildFrames)</script>
+                <p class="prompt-cost">In the app, each new wallpaper is a separate OpenAI request, billed to your account.</p>
                 <h2 class="mac-details-heading">Made for your Mac.</h2>
                 <div class="product-details">
                     <article>

@@ -31,7 +31,9 @@ class HomepageTest extends TestCase
             ->assertSeeText('MET Norway')
             ->assertSeeText('fixed weather condition in Customize')
             ->assertSeeText('Not created by the Daydreaming app')
-            ->assertSeeText('App design preview. Example wallpaper edited for this website')
+            ->assertSeeText('Luminous bay')
+            ->assertSeeText('Cut-paper world')
+            ->assertSeeText('Desert crossing')
             ->assertSee('favicon.svg')
             ->assertSee('site.webmanifest')
             ->assertSee('apple-touch-icon.png')
@@ -68,14 +70,19 @@ class HomepageTest extends TestCase
             $this->assertSame(0, $weatherFrames[0]['minutes']);
             $this->assertSame(1140, $weatherFrames[3]['minutes']);
         }
-        $wildFrames = $response->viewData('wildFrames');
-        $this->assertCount(24, $wildFrames);
-        $this->assertCount(24, array_unique(array_column($wildFrames, 'file')));
-        foreach ([...$frames, ...$wildFrames] as $frame) {
+        $promptExamples = $response->viewData('promptExamples');
+        $this->assertCount(4, $promptExamples);
+        $this->assertCount(4, array_unique(array_column($promptExamples, 'file')));
+        foreach ($frames as $frame) {
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-640.avif'));
             $this->assertLessThan(50000, filesize(public_path('examples/'.$frame['file'].'-640.avif')));
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-1280.avif'));
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-1280.webp'));
+        }
+        foreach ($promptExamples as $example) {
+            foreach ([640, 960, 1280, 1536] as $width) {
+                $this->assertFileExists(public_path('examples/'.$example['file'].'-'.$width.'.webp'));
+            }
         }
         $yosemiteFrames = $response->viewData('yosemiteFrames');
         $this->assertCount(20, $yosemiteFrames);
@@ -98,9 +105,9 @@ class HomepageTest extends TestCase
         $response->assertSee('max="24" step="any"', false)
             ->assertSee('data-picture-choice="bridge"', false)
             ->assertSee('data-picture-choice="yosemite"', false)
-            ->assertSee('id="wild-scrubber"', false)
-            ->assertSee('aria-label="Pause the day"', false)
-            ->assertSee('aria-label="Pause the sky garden"', false)
+            ->assertDontSee('id="wild-scrubber"', false)
+            ->assertDontSee('data-play=', false)
+            ->assertDontSee('class="app-window', false)
             ->assertSeeText('This demo blends example images')
             ->assertSeeText('Turn the bay into a sky garden')
             ->assertSeeText('each new wallpaper is a separate OpenAI request');

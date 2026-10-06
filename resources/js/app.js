@@ -7,15 +7,27 @@ const baseElement = document.getElementById('photo-base');
 const base = baseElement ? JSON.parse(baseElement.textContent) : '';
 const imageCache = new Map();
 const demos = [];
+const heroElement = document.querySelector('.hero');
 const idle = (callback) => window.requestIdleCallback ? window.requestIdleCallback(callback) : setTimeout(callback, 200);
 let themeHour = Number(document.getElementById('day-scrubber')?.value ?? new Date().getHours());
 let themeAnimation;
+let renderedPalette = {};
 function renderSkyTheme(hour) {
     const palette = skyPalette(hour);
     Object.entries(palette).forEach(([name, value]) => {
-        document.documentElement.style.setProperty(`--${name}`, value);
+        if (renderedPalette[name] !== value) {
+            document.documentElement.style.setProperty(`--${name}`, value);
+        }
     });
-    document.querySelector('meta[name="theme-color"]').content = palette.background;
+    if (renderedPalette.background !== palette.background) {
+        document.querySelector('meta[name="theme-color"]').content = palette.background;
+    }
+    const night = String(palette.stars > .15);
+    if (document.body.dataset.night !== night) {
+        document.body.dataset.night = night;
+        heroElement.dataset.night = night;
+    }
+    renderedPalette = palette;
 }
 function applySkyTheme(hour) {
     cancelAnimationFrame(themeAnimation);
@@ -49,17 +61,21 @@ function applySkyTheme(hour) {
 }
 renderSkyTheme(themeHour);
 const initialImage = document.getElementById('scene-image');
-if (initialImage) {
-    await initialImage.decode().catch(() => {});
-}
-const extension = initialImage?.currentSrc.endsWith('.avif') ? 'avif' : 'webp';
+let extension = initialImage?.currentSrc.endsWith('.avif') ? 'avif' : 'webp';
 
 function loadPhoto(frame, width = 640) {
     const source = `${base}/${frame.file}-${width}.${extension}`;
     if (!imageCache.has(source)) {
         const photo = new Image();
         photo.src = source;
-        const pending = photo.decode().then(() => photo).catch((error) => {
+        const pending = photo.decode().catch(async (error) => {
+            if (!source.endsWith('.avif')) {
+                throw error;
+            }
+            extension = 'webp';
+            photo.src = `${base}/${frame.file}-${width}.webp`;
+            await photo.decode();
+        }).then(() => photo).catch((error) => {
             imageCache.delete(source);
             throw error;
         });
@@ -70,23 +86,19 @@ function loadPhoto(frame, width = 640) {
 
 function createRenderer(image) {
     const originalContainer = image.parentElement;
-    const originalSource = image.currentSrc || image.src;
     const stage = document.createElement('div');
     stage.className = `${originalContainer.className} photo-stage`;
+    stage.style.opacity = '0';
     const banks = [0, 1].map((index) => {
         const bank = document.createElement('div');
         bank.className = 'photo-bank';
-        const lower = index === 0 ? image : image.cloneNode(false);
+        const lower = image.cloneNode(false);
         const upper = image.cloneNode(false);
-        if (index !== 0) {
-            lower.removeAttribute('id');
-            lower.alt = '';
-            lower.setAttribute('aria-hidden', 'true');
-        }
+        lower.removeAttribute('id');
+        lower.removeAttribute('src');
+        lower.alt = '';
+        lower.setAttribute('aria-hidden', 'true');
         upper.removeAttribute('src');
-        if (index !== 0) {
-            lower.removeAttribute('src');
-        }
         upper.removeAttribute('id');
         upper.alt = '';
         upper.setAttribute('aria-hidden', 'true');
@@ -96,9 +108,6 @@ function createRenderer(image) {
             photo.fetchPriority = 'low';
             photo.loading = 'eager';
         });
-        if (index === 0 && originalSource) {
-            lower.src = originalSource;
-        }
         upper.style.opacity = '0';
         bank.style.opacity = index === 0 ? '1' : '0';
         bank.style.zIndex = index === 0 ? '1' : '0';
@@ -106,7 +115,7 @@ function createRenderer(image) {
         stage.append(bank);
         return { bank, lower, upper, availableAt: 0 };
     });
-    originalContainer.replaceWith(stage);
+    originalContainer.after(stage);
     let active = 0;
     let pairKey = '';
     let renderedWidth = 0;
@@ -156,6 +165,7 @@ function createRenderer(image) {
             banks[next].bank.style.zIndex = '1';
             banks[outgoing].availableAt = performance.now() + (reducedMotion ? 0 : 400);
             banks[next].bank.style.opacity = '1';
+            stage.style.opacity = '1';
             captionReadyAt = performance.now() + (reducedMotion ? 0 : 180);
             active = next;
             setTimeout(() => {
@@ -195,28 +205,23 @@ function createRenderer(image) {
     };
 }
 
-function createDemo({ range, image, area, playButton, feedback, announcement, framesForSelection, sceneName, onDisplay, onTimeChange, onDayComplete }) {
+function createDemo({ range, image, area, feedback, framesForSelection, sceneName, onDisplay, onTimeChange, onDayComplete }) {
     const renderer = createRenderer(image);
+    const hero = area.closest('.hero');
     let playing = shouldAutoplay({ reducedMotion: motionPreference.matches, saveData });
     let visible = false;
     let ready = false;
     let displayedHour = Number(range.value);
     let lastTick = 0;
     let lastRender = 0;
-    let lastThemeUpdate = 0;
     let request = 0;
     let prefetched = '';
 
-    function updatePlayButton() {
-        playButton.querySelector('[data-play-label]').textContent = playing ? 'Pause' : 'Play';
-        playButton.querySelector('[data-play-icon]').setAttribute('d', playing ? 'M7 5v14M17 5v14' : 'M8 5l11 7-11 7Z');
-        playButton.setAttribute('aria-label', `${playing ? 'Pause' : 'Play'} ${playButton.dataset.play === 'hero' ? 'the day' : 'the sky garden'}`);
-        area.dataset.playing = String(playing);
-    }
-
     function pause() {
         playing = false;
-        updatePlayButton();
+        area.dataset.playing = 'false';
+        hero.dataset.playing = 'false';
+        document.body.dataset.playing = 'false';
     }
 
     function prefetch(pair) {
@@ -277,6 +282,7 @@ function createDemo({ range, image, area, playButton, feedback, announcement, fr
         }, 200);
     });
     range.addEventListener('pointerdown', pause);
+    range.addEventListener('focus', pause);
     range.addEventListener('input', () => {
         pause();
         onTimeChange?.(Number(range.value));
@@ -292,17 +298,6 @@ function createDemo({ range, image, area, playButton, feedback, announcement, fr
             display(hour, { user: true });
         }
     });
-    playButton.addEventListener('click', () => {
-        playing = !playing;
-        updatePlayButton();
-        announcement.textContent = playing ? 'Playing the examples.' : 'Examples paused.';
-        lastTick = 0;
-        if (playing) {
-            prefetch(framePair(framesForSelection(), Number(range.value)));
-        } else {
-            display(Number(range.value), { user: true });
-        }
-    });
     motionPreference.addEventListener('change', () => {
         if (motionPreference.matches) {
             pause();
@@ -311,13 +306,17 @@ function createDemo({ range, image, area, playButton, feedback, announcement, fr
     });
     const observer = new IntersectionObserver((entries) => {
         visible = entries[0].isIntersecting;
+        hero.dataset.visible = String(visible);
+        document.body.dataset.visible = String(visible);
         lastTick = 0;
         if (visible && !ready) {
             display(Number(range.value));
         }
     }, { threshold: .15 });
     observer.observe(area);
-    updatePlayButton();
+    area.dataset.playing = String(playing);
+    hero.dataset.playing = String(playing);
+    document.body.dataset.playing = String(playing);
     demos.push({
         tick(now) {
             if (!playing || !visible || document.hidden || !ready) {
@@ -332,10 +331,7 @@ function createDemo({ range, image, area, playButton, feedback, announcement, fr
                 onDayComplete?.();
             }
             range.value = hour;
-            if (now - lastThemeUpdate > 250) {
-                lastThemeUpdate = now;
-                onTimeChange?.(hour);
-            }
+            onTimeChange?.(hour);
             if (now - lastRender > 80) {
                 lastRender = now;
                 display(hour);
@@ -360,9 +356,7 @@ if (scene && scrubber && frameData) {
         range: scrubber,
         image: document.getElementById('scene-image'),
         area: scene,
-        playButton: document.querySelector('[data-play="hero"]'),
         feedback: document.getElementById('scene-feedback'),
-        announcement: document.getElementById('scene-announcement'),
         framesForSelection: () => photoSets[picture].filter(frame => frame.weather === weather),
         sceneName: () => picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley',
         onTimeChange: applySkyTheme,
@@ -386,11 +380,15 @@ if (scene && scrubber && frameData) {
             document.getElementById('scene-weather').textContent = label;
             scrubber.setAttribute('aria-valuetext', `${time}, ${label.toLowerCase()}`);
             scene.dataset.weather = weather;
+            document.body.dataset.weather = weather;
             scene.dataset.frame = frame.key;
             scene.dataset.picture = picture;
             pictureButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.pictureChoice === picture)));
             const original = picture === 'bridge' ? 'bridge-day' : 'yosemite-original';
-            document.getElementById('original-avif').srcset = `${base}/${original}-320.avif`;
+            const originalAvif = document.getElementById('original-avif');
+            if (originalAvif.dataset.failed !== 'true') {
+                originalAvif.srcset = `${base}/${original}-320.avif`;
+            }
             document.getElementById('original-image').src = `${base}/${original}-320.webp`;
             document.getElementById('original-image').alt = `Original ${picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley'} photograph`;
             const icon = document.querySelector(`[data-icon-template="${weather === 'clear' && (hour < 6 || hour >= 21) ? 'night' : weather}"]`);
@@ -403,6 +401,7 @@ if (scene && scrubber && frameData) {
         },
     });
     pictureButtons.forEach(button => {
+        button.addEventListener('focus', demo.pause);
         button.addEventListener('click', async () => {
             if (button.dataset.pictureChoice === picture) {
                 return;
@@ -416,6 +415,7 @@ if (scene && scrubber && frameData) {
         });
     });
     weatherButtons.forEach((button) => {
+        button.addEventListener('focus', demo.pause);
         button.addEventListener('click', async () => {
             demo.pause();
             weather = button.dataset.weatherChoice;
@@ -423,103 +423,6 @@ if (scene && scrubber && frameData) {
             if (result === 'failed' && weather === button.dataset.weatherChoice) {
                 weather = displayedWeather;
             }
-        });
-    });
-}
-
-const wildFrameData = document.getElementById('wild-frames');
-if (wildFrameData) {
-    const frames = JSON.parse(wildFrameData.textContent).map((frame) => ({ ...frame, minutes: frame.hour * 60 }));
-    const range = document.getElementById('wild-scrubber');
-    const buttons = [...document.querySelectorAll('[data-wild-hour]')];
-    const strip = document.querySelector('.wild-grid');
-    const mobile = () => window.matchMedia('(max-width: 700px)').matches;
-    let selectedHour = new Date().getHours();
-    range.value = selectedHour;
-    const initialCaption = `${formatExampleTime(selectedHour * 60)}, sky garden example`;
-    range.setAttribute('aria-valuetext', initialCaption);
-    document.getElementById('wild-caption').textContent = initialCaption;
-    function updatePartialLabels() {
-        const bounds = strip.getBoundingClientRect();
-        buttons.forEach((button) => {
-            const thumbnail = button.getBoundingClientRect();
-            button.dataset.partial = String(mobile() && (thumbnail.left < bounds.left || thumbnail.right > bounds.right));
-        });
-    }
-    function centerSelectedThumbnail(hour) {
-        if (mobile()) {
-            const button = buttons[hour];
-            strip.scrollLeft = button.offsetLeft - strip.offsetLeft - (strip.clientWidth - button.clientWidth) / 2;
-            updatePartialLabels();
-        }
-    }
-    strip.addEventListener('scroll', updatePartialLabels, { passive: true });
-    window.addEventListener('resize', () => {
-        centerSelectedThumbnail(selectedHour);
-        updatePartialLabels();
-    });
-    buttons.forEach((button) => {
-        const hour = Number(button.dataset.wildHour);
-        button.querySelector('[data-hour-label]').textContent = formatExampleTime(hour * 60);
-        button.setAttribute('aria-label', `${formatExampleTime(hour * 60)}, sky garden example`);
-        button.tabIndex = hour === selectedHour ? 0 : -1;
-        button.setAttribute('aria-pressed', String(hour === selectedHour));
-    });
-    centerSelectedThumbnail(selectedHour);
-    const demo = createDemo({
-        range,
-        image: document.getElementById('wild-image'),
-        area: document.querySelector('.wild-preview'),
-        playButton: document.querySelector('[data-play="wild"]'),
-        feedback: document.getElementById('wild-feedback'),
-        announcement: document.getElementById('wild-status'),
-        framesForSelection: () => frames,
-        sceneName: () => 'Golden Gate Bridge',
-        onDisplay(hour, frame, announce) {
-            const previousHour = selectedHour;
-            selectedHour = frame.hour;
-            const caption = `${formatExampleTime(hour * 60)}, sky garden example`;
-            document.getElementById('wild-caption').textContent = caption;
-            range.setAttribute('aria-valuetext', caption);
-            buttons.forEach((button) => {
-                const selected = Number(button.dataset.wildHour) === selectedHour;
-                button.tabIndex = selected ? 0 : -1;
-                button.setAttribute('aria-pressed', String(selected));
-            });
-            if (previousHour !== selectedHour) {
-                centerSelectedThumbnail(selectedHour);
-            }
-            if (announce) {
-                document.getElementById('wild-status').textContent = caption;
-            }
-        },
-    });
-    strip.addEventListener('pointerdown', demo.pause);
-    const thumbnailObserver = new IntersectionObserver((entries) => {
-        entries.filter((entry) => entry.isIntersecting).forEach(({ target: thumbnail }) => {
-            thumbnail.parentElement.querySelector('source').srcset = thumbnail.parentElement.querySelector('source').dataset.srcset;
-            thumbnail.src = thumbnail.dataset.src;
-            thumbnailObserver.unobserve(thumbnail);
-        });
-    }, { rootMargin: '100px' });
-    buttons.forEach((button) => {
-        thumbnailObserver.observe(button.querySelector('img'));
-        button.addEventListener('click', () => {
-            demo.pause();
-            demo.display(Number(button.dataset.wildHour), { announce: true, user: true });
-        });
-        button.addEventListener('keydown', (event) => {
-            const columns = mobile() ? 1 : 4;
-            const offset = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: columns, ArrowUp: -columns }[event.key];
-            if (offset === undefined && event.key !== 'Home' && event.key !== 'End') {
-                return;
-            }
-            event.preventDefault();
-            demo.pause();
-            const hour = event.key === 'Home' ? 0 : event.key === 'End' ? 23 : (Number(button.dataset.wildHour) + offset + 24) % 24;
-            buttons[hour].focus();
-            centerSelectedThumbnail(hour);
-            demo.display(hour, { announce: true, user: true });
         });
     });
 }

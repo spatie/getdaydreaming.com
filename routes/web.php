@@ -75,12 +75,32 @@ Route::view('/', 'welcome', [
             ['name' => 'evening', 'hour' => 19],
         ]), ['rain', 'snow', 'fog', 'storm'])),
     ],
-    'wildPrompt' => 'Turn the bay into a sky garden. Keep the bridge. Let koi swim through clouds, with giant water lilies and floating islands.',
-    'wildFrames' => array_map(fn (int $hour): array => [
-        'hour' => $hour,
-        'file' => 'bridge-wild-'.str_pad((string) $hour, 2, '0', STR_PAD_LEFT),
-        'alt' => 'Golden Gate Bridge in a sky garden at '.$hour.':00, with floating koi, giant water lilies and islands above clouds, AI-edited example',
-    ], range(0, 23)),
+    'promptExamples' => [
+        [
+            'title' => 'Sky garden',
+            'prompt' => 'Turn the bay into a sky garden. Keep the bridge. Let koi swim through clouds, with giant water lilies and floating islands.',
+            'file' => 'bridge-wild-17',
+            'alt' => 'Golden Gate Bridge above clouds, with floating koi and flower-covered islands, AI-edited example',
+        ],
+        [
+            'title' => 'Luminous bay',
+            'prompt' => 'Make the bay bioluminescent after dark. Keep the bridge. Let enormous whales swim beneath the surface, leaving trails of blue light.',
+            'file' => 'bridge-prompt-luminous-bay',
+            'alt' => 'Golden Gate Bridge over a glowing blue bay with whales beneath the surface, AI-edited example',
+        ],
+        [
+            'title' => 'Cut-paper world',
+            'prompt' => 'Make this a hand-cut paper diorama. Keep the bridge’s shape, and build the hills, water, and clouds from colored paper.',
+            'file' => 'bridge-prompt-paper-world',
+            'alt' => 'Golden Gate Bridge and bay made from layered colored paper, AI-edited example',
+        ],
+        [
+            'title' => 'Desert crossing',
+            'prompt' => 'Replace the bay with golden dunes and a winding turquoise river. Keep the bridge, with sunset light and sand drifting through the air.',
+            'file' => 'bridge-prompt-desert-crossing',
+            'alt' => 'Golden Gate Bridge crossing golden desert dunes beside a turquoise river, AI-edited example',
+        ],
+    ],
     'photoCredits' => [
         ['picture' => 'Bridge', 'author' => 'Edgar Chaparro', 'source' => 'https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_in_sunlight_(Unsplash).jpg', 'license' => 'CC0', 'licenseUrl' => 'https://creativecommons.org/publicdomain/zero/1.0/', 'downloaded' => '2026-10-05'],
         ['picture' => 'Yosemite Valley', 'author' => 'NPS Photo / C. Jacoby', 'source' => 'https://www.nps.gov/places/000/tunnel-view.htm', 'license' => 'public domain', 'licenseUrl' => 'https://www.nps.gov/aboutus/disclaimer.htm', 'downloaded' => '2026-10-05'],
