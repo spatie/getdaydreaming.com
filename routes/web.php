@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::view('/', 'welcome', [
-    'photoRevision' => 'ridge-20261006',
+    'photoRevision' => 'ridge-20261006-2',
     'photoFrames' => [
         ...array_map(function (int $hour): array {
             $files = array_map(fn (int $hour): string => 'bridge-hour-'.str_pad((string) $hour, 2, '0', STR_PAD_LEFT), range(0, 23));

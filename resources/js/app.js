@@ -260,6 +260,15 @@ function createRenderer(image) {
     return {
         render,
         previewWidth,
+        setBlendWeight(pair) {
+            if (motionPreference.matches) {
+                return;
+            }
+
+            if (`${pair.lower.file}/${pair.upper.file}` === pairKey) {
+                banks[active].upper.style.opacity = pair.weight;
+            }
+        },
         upgrade(pair, description) {
             clearTimeout(upgradeTimer);
             upgradeTimer = setTimeout(() => render(pair, description, true).catch(() => {}), 450);
@@ -276,6 +285,8 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
     let displayedHour = Number(range.value);
     let lastTick = 0;
     let lastRender = 0;
+    let requestedPairKey = '';
+    let displayedPairKey = '';
     let request = 0;
     let prefetched = '';
     let renderingHolds = 0;
@@ -306,6 +317,8 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
     async function display(hour, { announce = false, user = false, weatherPreview = false, keepTime = false, pauseOnFailure = true } = {}) {
         const currentRequest = ++request;
         const pair = framePair(framesForSelection(), hour);
+        const pairKey = `${pair.lower.file}/${pair.upper.file}`;
+        requestedPairKey = pairKey;
         const nearest = pair.weight < .5 ? pair.lower : pair.upper;
         const description = `${sceneName()}, ${nearest.weather ?? 'sky garden'} example at ${formatExampleTime(hour * 60)}, blended between example photographs`;
         try {
@@ -313,9 +326,13 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
             if (!renderedPhoto || currentRequest !== request) {
                 return;
             }
+            if (playing && !user && !keepTime) {
+                renderer.setBlendWeight(framePair(framesForSelection(), Number(range.value)));
+            }
             ready = true;
             displayedHour = hour;
-            if (!keepTime) {
+            displayedPairKey = pairKey;
+            if (!keepTime && (!playing || user)) {
                 range.value = hour;
             }
             feedback.hidden = true;
@@ -336,6 +353,7 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
                 range.value = displayedHour;
                 onTimeChange?.(displayedHour);
             }
+            requestedPairKey = '';
             feedback.textContent = 'Couldn’t load that example. Try again.';
             feedback.hidden = false;
             return 'failed';
@@ -406,9 +424,14 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
             }
             range.value = hour;
             onTimeChange?.(hour);
-            if (renderingHolds === 0 && now - lastRender > 80) {
-                lastRender = now;
-                display(hour);
+            if (renderingHolds === 0) {
+                const pair = framePair(framesForSelection(), hour);
+                renderer.setBlendWeight(pair);
+                const pairKey = `${pair.lower.file}/${pair.upper.file}`;
+                if (pairKey !== requestedPairKey || (pairKey === displayedPairKey && now - lastRender > 80)) {
+                    lastRender = now;
+                    display(hour);
+                }
             }
         },
     });
@@ -468,7 +491,6 @@ if (scene && scrubber && frameData) {
             const label = `${adjective} ${period} example`;
             displayedWeather = weather;
             displayedPicture = picture;
-            document.getElementById('desktop-clock').textContent = time;
             document.getElementById('scene-time').textContent = time;
             scrubber.setAttribute('aria-valuetext', `${time}, ${label.toLowerCase()}`);
             scene.dataset.weather = weather;
@@ -477,8 +499,6 @@ if (scene && scrubber && frameData) {
             scene.dataset.frame = frame.key;
             scene.dataset.picture = picture;
             pictureButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.pictureChoice === picture)));
-            const icon = document.querySelector(`[data-icon-template="${weather === 'clear' && (hour < 6 || hour >= 21) ? 'night' : weather}"]`);
-            document.getElementById('desktop-weather-icon').replaceChildren(icon.content.cloneNode(true));
             weatherButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.weatherChoice === weather)));
             if (announce) {
                 const subject = picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley';

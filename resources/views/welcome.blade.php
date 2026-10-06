@@ -57,10 +57,6 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <div class="page-shell">
         <canvas id="weather-page-canvas" aria-hidden="true"></canvas>
-        <div class="desktop-menu" aria-hidden="true">
-            <span>Daydreaming</span>
-            <span class="desktop-weather"><span id="desktop-weather-icon">@include('weatherIcon', ['weather' => 'clear'])</span><span id="desktop-clock"></span></span>
-        </div>
         <header class="site-header container">
             <a class="brand" href="{{ route('home') }}" aria-label="Daydreaming home">
                 <img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="36" height="36">
@@ -157,7 +153,6 @@
                     <p id="scene-announcement" class="sr-only" role="status"></p>
                     <script>
                         const initialTime = formatExampleTime(initialPhotoFrame.minutes);
-                        document.getElementById('desktop-clock').textContent = initialTime;
                         document.getElementById('scene-time').textContent = initialTime;
                         document.getElementById('day-scrubber').value = initialFrame;
                         document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialPhotoFrame.label.toLowerCase() + ' example');
@@ -380,13 +375,6 @@
         </footer>
         <script id="photo-frames" type="application/json">{!! json_encode(['bridge' => $photoFrames, 'yosemite' => $yosemiteFrames], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
         <script id="photo-base" type="application/json">@json(['url' => asset('examples'), 'revision' => $photoRevision])</script>
-        @foreach(['clear', 'rain', 'snow', 'fog', 'storm', 'night'] as $weather)
-            <template data-icon-template="{{ $weather }}">@include('weatherIcon', ['weather' => $weather])</template>
-        @endforeach
-        <script>
-            const initialIcon = document.querySelector('[data-icon-template="' + (initialPhotoFrame.minutes < 360 || initialPhotoFrame.minutes >= 1260 ? 'night' : 'clear') + '"]');
-            document.getElementById('desktop-weather-icon').replaceChildren(initialIcon.content.cloneNode(true));
-        </script>
     </div>
 </body>
 </html>

@@ -142,7 +142,7 @@ function createCloudTexture(width, height, weather, seed) {
     return canvas;
 }
 
-function drawRain(context, particles, width, height, elapsed, storm, sectionAt = () => 0) {
+function drawRain(context, particles, width, height, elapsed, storm, sectionAt = () => 0, bounds) {
     context.lineCap = 'round';
     const wind = storm ? .43 : .2;
 
@@ -151,6 +151,10 @@ function drawRain(context, particles, width, height, elapsed, storm, sectionAt =
         const y = ((drop.y + elapsed * speed) % (height + 90)) - 45;
         const x = (drop.x + elapsed * speed * wind) % (width + 45) - 22;
         const length = 8 + drop.depth * (storm ? 34 : 23);
+        if (bounds && (y > bounds.bottom || y + length < bounds.top
+            || x < bounds.left - length * wind || x > bounds.right + length * wind)) {
+            return;
+        }
         const section = sectionAt(y);
         if (drop.size < section * .88) {
             return;
@@ -354,6 +358,9 @@ export function createWeatherAtmosphere(hero, scene) {
     let droplets = [];
     let frame;
     let lastFrame = 0;
+    let lastTick = 0;
+    let refreshInterval = 1000 / 60;
+    let ticksSinceRender = 0;
     let elapsed = 0;
     let nextStrike = 9;
     let strikeAt = -1;
@@ -454,7 +461,13 @@ export function createWeatherAtmosphere(hero, scene) {
             const storm = weather === 'storm';
             sceneContext.save();
             sceneContext.translate(-sceneLeft, -sceneTop);
-            drawRain(sceneContext, pageParticles, pageWidth, pageHeight, elapsed, storm);
+            drawRain(sceneContext, pageParticles, pageWidth, pageHeight, elapsed, storm,
+                () => 0, {
+                    left: sceneLeft,
+                    top: sceneTop,
+                    right: sceneLeft + sceneWidth,
+                    bottom: sceneTop + sceneHeight,
+                });
             sceneContext.restore();
             drawGlassDroplets(sceneContext, droplets, sceneWidth, sceneHeight, elapsed, storm);
         }
@@ -478,16 +491,29 @@ export function createWeatherAtmosphere(hero, scene) {
             return;
         }
 
-        if (now - lastFrame >= 30 || !lastFrame) {
-            elapsed += lastFrame ? Math.min((now - lastFrame) / 1000, .06) : 0;
-            lastFrame = now;
-            if (weather === 'storm' && elapsed >= nextStrike) {
-                strikeAt = elapsed;
-                strikeSeed += 137;
-                nextStrike = elapsed + 9 + randomGenerator(strikeSeed)() * 7;
+        if (lastTick) {
+            const tickInterval = now - lastTick;
+            if (tickInterval < 50) {
+                refreshInterval = refreshInterval * .8 + tickInterval * .2;
             }
-            draw();
         }
+        lastTick = now;
+        ticksSinceRender++;
+        const frameStride = Math.max(1, Math.floor((1000 / 60 + .75) / refreshInterval));
+        if (ticksSinceRender < frameStride) {
+            frame = requestAnimationFrame(tick);
+            return;
+        }
+        ticksSinceRender = 0;
+
+        elapsed += lastFrame ? Math.min((now - lastFrame) / 1000, .06) : 0;
+        lastFrame = now;
+        if (weather === 'storm' && elapsed >= nextStrike) {
+            strikeAt = elapsed;
+            strikeSeed += 137;
+            nextStrike = elapsed + 9 + randomGenerator(strikeSeed)() * 7;
+        }
+        draw();
 
         frame = requestAnimationFrame(tick);
     }
@@ -498,6 +524,8 @@ export function createWeatherAtmosphere(hero, scene) {
             frame = undefined;
         }
         lastFrame = 0;
+        lastTick = 0;
+        ticksSinceRender = 0;
         strikeAt = -1;
         setFlash(0);
         draw();
