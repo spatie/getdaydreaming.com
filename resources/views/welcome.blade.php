@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#fffcf6">
-    <meta name="description" content="Keep the scene. Change the atmosphere. Daydreaming reimagines your picture for the time and weather, using your own OpenAI API key.">
+    <meta name="description" content="Choose a picture you love. Daydreaming uses AI to make Mac wallpapers that match the time of day and local weather, using your own OpenAI API key.">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Daydreaming for Mac">
-    <meta property="og:description" content="Keep the scene. Change the atmosphere. Your picture, reimagined for the time and weather on your Mac.">
+    <meta property="og:description" content="Your picture, made into Mac wallpapers that match the time of day and local weather.">
     <meta property="og:image" content="{{ asset('daydreaming-social.jpg') }}">
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:url" content="{{ route('home') }}">
@@ -80,7 +80,7 @@
                     <span class="hero-theme-layer"></span>
                 </div>
                 <div class="night-sky" aria-hidden="true">
-                    <span class="moon"></span>
+                    <span class="moon" style="--moon-image: url('{{ asset('daydreaming-moon.webp') }}')"></span>
                     <span class="shooting-star shooting-star-one"></span>
                     <span class="shooting-star shooting-star-two"></span>
                 </div>
@@ -90,8 +90,8 @@
                 </div>
                 <div class="hero-copy container">
                     <h1 id="hero-title">Keep the scene.<br>Change the atmosphere.</h1>
-                    <p class="hero-description">Daydreaming redraws your favorite picture for the time and weather, and sets it as your Mac wallpaper.</p>
-                    <p class="hero-requirements">For macOS 26 and later. Uses your own OpenAI API key.</p>
+                    <p class="hero-description">Daydreaming uses AI to match your picture to the time and local weather, then sets it as your Mac wallpaper.</p>
+                    <p class="hero-requirements">Requires macOS 26 or later and your own OpenAI API key.</p>
                 </div>
 
                 <figure class="preview" id="preview">
@@ -217,14 +217,6 @@
                 <h2 class="mac-details-heading">Made for your Mac.</h2>
                 <div class="product-details">
                     <article>
-                        <div class="weather-icons" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2" /></svg>
-                            <svg viewBox="0 0 24 24"><path d="M6 18a4 4 0 1 1 1-8 6 6 0 0 1 11-1 4.5 4.5 0 1 1 1 9Z" /></svg>
-                            <svg viewBox="0 0 24 24"><path d="M6 14a4 4 0 1 1 1-8 6 6 0 0 1 11-1 4.5 4.5 0 1 1 1 9M8 18l-1 3m6-3-1 3m6-3-1 3" /></svg>
-                            <svg viewBox="0 0 24 24"><path d="M12 2v20M3 7l18 10M3 17 21 7M9 4l3 3 3-3M9 20l3-3 3 3" /></svg>
-                            <svg viewBox="0 0 24 24"><path d="M20 16A9 9 0 0 1 8 4a9 9 0 1 0 12 12Z" /></svg>
-                        </div>
-                        @include('weatherIcon', ['weather' => 'storm'])
                         <h3>The weather, at a glance</h3>
                         <p>The menu bar icon follows the weather. Automatic updates work while the app is running, with optional launch at login.</p>
                     </article>

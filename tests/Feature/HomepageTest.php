@@ -13,7 +13,7 @@ class HomepageTest extends TestCase
             ->assertSeeText('Daydreaming for Mac')
             ->assertSeeText('Change the atmosphere.')
             ->assertDontSeeText('Coming soon for Mac')
-            ->assertSeeText('macOS 26 and later')
+            ->assertSeeText('macOS 26 or later')
             ->assertSeeText('your own OpenAI API key')
             ->assertSeeText('5 minutes to 24 hours')
             ->assertSeeText('daily safety limit from 1 to 288')

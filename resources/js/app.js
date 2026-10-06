@@ -11,7 +11,7 @@ const photoToneCache = new Map();
 const demos = [];
 const heroElement = document.querySelector('.hero');
 const paintHeroSurface = createThemeSurface([...heroElement.querySelectorAll('.hero-theme-layer')]);
-const paintPageSurface = createThemeSurface([...document.querySelectorAll('.page-theme-layer')]);
+const paintPageSurface = createPageThemeSurface([...document.querySelectorAll('.page-theme-layer')]);
 const idle = (callback) => window.requestIdleCallback ? window.requestIdleCallback(callback) : setTimeout(callback, 200);
 let themeHour = Number(document.getElementById('day-scrubber')?.value ?? new Date().getHours());
 let renderedPagePalette = {};
@@ -53,6 +53,116 @@ function createThemeSurface(layers) {
 
         rendered = background;
     };
+}
+
+function createPageThemeSurface(layers) {
+    const container = layers[0].parentElement;
+    let active = layers[0];
+    let rendered = '';
+    let target = '';
+    let pending = '';
+    let transitioning = false;
+    let lastWeather = '';
+    let cleanupTimer;
+    layers.slice(1).forEach(layer => layer.remove());
+
+    function transitionTo(background) {
+        const duration = motionPreference.matches || saveData ? 0 : 900;
+        const incoming = document.createElement('span');
+        incoming.className = 'page-theme-layer';
+        incoming.style.background = background;
+        incoming.style.opacity = '0';
+        container.append(incoming);
+        clearTimeout(cleanupTimer);
+        target = background;
+        transitioning = true;
+
+        if (duration === 0) {
+            incoming.style.transition = 'none';
+            incoming.style.opacity = '1';
+            [...container.querySelectorAll('.page-theme-layer')].forEach(layer => {
+                if (layer !== incoming) {
+                    layer.remove();
+                }
+            });
+            active = incoming;
+            rendered = background;
+            transitioning = false;
+            return;
+        }
+
+        requestAnimationFrame(() => { incoming.style.opacity = '1'; });
+        cleanupTimer = setTimeout(() => {
+            [...container.querySelectorAll('.page-theme-layer')].forEach(layer => {
+                if (layer !== incoming) {
+                    layer.remove();
+                }
+            });
+            active = incoming;
+            rendered = background;
+            transitioning = false;
+            const next = pending;
+            pending = '';
+            if (next && next !== rendered) {
+                transitionTo(next);
+            }
+        }, duration);
+    }
+
+    return (background, weather) => {
+        const weatherChanged = weather !== lastWeather;
+        lastWeather = weather;
+        if (!rendered) {
+            active.style.background = background;
+            rendered = background;
+            target = background;
+            return;
+        }
+
+        if (background === target) {
+            pending = '';
+            return;
+        }
+
+        if (weatherChanged) {
+            pending = '';
+            transitionTo(background);
+            return;
+        }
+
+        pending = background;
+        if (!transitioning) {
+            pending = '';
+            transitionTo(background);
+        }
+    };
+}
+
+function pageBackground(palette) {
+    const weather = document.body.dataset.weather ?? 'clear';
+    const weatherTone = {
+        rain: ['#cadde5', 34],
+        snow: ['#e4f2f8', 20],
+        fog: ['#d9e5e8', 32],
+        storm: ['#b9cedb', 48],
+    }[weather];
+    const nightWeight = Math.min(100, Math.round(palette.stars / .85 * 100));
+    const colors = [
+        ['#fff5d7', '#f2f1e7'],
+        ['#ffdcc5', '#e8dfe1'],
+        ['#f7d5db', '#e2ddeb'],
+        ['#dcdaf5', '#d7e0f4'],
+        ['#d2e8f5', '#d4eaf3'],
+    ].map(([day, night]) => {
+        const timeColor = `color-mix(in srgb, ${day} ${100 - nightWeight}%, ${night})`;
+        const photoColor = `color-mix(in srgb, ${timeColor} 90%, ${palette.background})`;
+
+        return weatherTone
+            ? `color-mix(in srgb, ${photoColor} ${100 - weatherTone[1]}%, ${weatherTone[0]})`
+            : photoColor;
+    });
+
+    return `linear-gradient(170deg, ${colors[0]} 0%, ${colors[1]} 28%, ${colors[2]} 49%, ${colors[3]} 72%, ${colors[4]} 100%)`;
 }
 
 function dayPeriod(hour) {
@@ -101,7 +211,7 @@ function paintHeroTheme() {
     const gradient = `radial-gradient(ellipse 45% 32% at 50% 47%, ${palette.glow}, transparent 90%), linear-gradient(180deg, color-mix(in srgb, ${sky} 88%, var(--photo-tone)), ${pageColor} 80%)`;
     lastHeroUpdate = performance.now();
     paintHeroSurface(gradient);
-    paintPageSurface(background);
+    paintPageSurface(pageBackground(palette), document.body.dataset.weather ?? 'clear');
 
     const stars = Math.round(palette.stars * 20) / 20;
     if (stars !== renderedStars) {
@@ -373,7 +483,6 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
     let lastTick = 0;
     let lastThemeUpdate = 0;
     let lastProgressUpdate = 0;
-    let direction = 1;
     let requestedPairKey = '';
     let request = 0;
     let prefetched = '';
@@ -499,20 +608,15 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
             }
             const elapsed = lastTick ? Math.min(now - lastTick, 100) : 0;
             lastTick = now;
-            let hour = Number(range.value) + direction * elapsed / 1800;
-            if (hour > 24) {
-                hour = 48 - hour;
-                direction = -1;
-            } else if (hour < 0) {
-                hour = -hour;
-                direction = 1;
-            }
+            const nextHour = Number(range.value) + elapsed / 1800;
+            const wrapped = nextHour >= 24;
+            const hour = wrapped ? nextHour - 24 : nextHour;
             range.value = hour;
-            if (now - lastThemeUpdate >= 200) {
+            if (wrapped || now - lastThemeUpdate >= 200) {
                 onTimeChange?.(hour, true);
                 lastThemeUpdate = now;
             }
-            if (now - lastProgressUpdate >= 80) {
+            if (wrapped || now - lastProgressUpdate >= 80) {
                 onProgress?.(hour);
                 lastProgressUpdate = now;
             }
@@ -574,6 +678,7 @@ if (scene && scrubber && frameData) {
         document.body.dataset.weather = nextWeather;
         weatherButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.weatherChoice === nextWeather)));
         updateTime(Number(scrubber.value));
+        paintPageSurface(pageBackground(skyPalette(themeHour)), nextWeather);
         renderHeroTheme(skyPalette(themeHour));
         atmosphere.setWeather(nextWeather, { preview });
     }

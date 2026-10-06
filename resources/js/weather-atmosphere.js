@@ -68,6 +68,7 @@ function createParticles(width, height, weather, random) {
             secondPhase: random() * Math.PI * 2,
             speed: .72 + random() * .6,
             size: random(),
+            curvature: (random() - .5) * 1.8,
         };
     });
 }
@@ -179,19 +180,22 @@ function rainStreaks(particles, width, height, elapsed, storm, gustStrength) {
         const x = ((drop.x + wind * (.45 + drop.depth * .9) + gust + rebirth) % (width + 45)
             + width + 45) % (width + 45) - 22;
         const length = (3 + drop.depth * (storm ? 26 : 20))
+            * (drop.depth > .72 ? 1.65 : 1)
             * (1 + Math.sin(elapsed * .9 + drop.phase) * .15);
         const slant = (storm ? .3 : .15) + Math.sin(elapsed * .67 + drop.secondPhase) * .08
             + gustStrength * (storm ? .13 : 0);
+        const curvature = (drop.curvature + Math.sin(elapsed * 1.17 + drop.phase) * .45)
+            * length * (storm ? .27 : .24);
 
-        return { x, y, length, slant, depth: drop.depth, size: drop.size };
+        return { x, y, length, slant, curvature, depth: drop.depth, size: drop.size };
     });
 }
 
 function drawRain(context, streaks, sectionAt = () => 0, bounds, scene = false) {
-    context.lineCap = 'butt';
+    context.lineCap = 'round';
 
     streaks.forEach((streak) => {
-        const { x, y, length, slant, depth, size } = streak;
+        const { x, y, length, slant, curvature, depth, size } = streak;
         if (bounds && (y > bounds.bottom || y + length < bounds.top
             || x < bounds.left - length * slant || x > bounds.right + length * slant)) {
             return;
@@ -213,7 +217,8 @@ function drawRain(context, streaks, sectionAt = () => 0, bounds, scene = false) 
         }
         context.beginPath();
         context.moveTo(x, y);
-        context.lineTo(x - length * slant, y + length);
+        context.quadraticCurveTo(x - length * slant * .5 + curvature,
+            y + length * .5, x - length * slant, y + length);
         context.stroke();
         context.shadowBlur = 0;
     });
