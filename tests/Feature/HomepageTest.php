@@ -12,7 +12,7 @@ class HomepageTest extends TestCase
             ->assertOk()
             ->assertSeeText('Daydreaming for Mac')
             ->assertSeeText('Change the atmosphere.')
-            ->assertSeeText('Coming soon for Mac')
+            ->assertDontSeeText('Coming soon for Mac')
             ->assertSeeText('macOS 26 and later')
             ->assertSeeText('your own OpenAI API key')
             ->assertSeeText('5 minutes to 24 hours')
@@ -97,18 +97,18 @@ class HomepageTest extends TestCase
             }
             $this->assertLessThan(50000, filesize(public_path('examples/'.$frame['file'].'-640.avif')));
         }
-        $this->assertFileExists(public_path('examples/yosemite-original-320.webp'));
-        $this->assertFileExists(public_path('examples/yosemite-original-320.avif'));
         $this->assertFileExists(public_path('favicon.ico'));
         $this->assertFileExists(public_path('icon-maskable-512.png'));
         $this->assertFileExists(public_path('daydreaming-social.jpg'));
         $response->assertSee('max="24" step="any"', false)
             ->assertSee('data-picture-choice="bridge"', false)
             ->assertSee('data-picture-choice="yosemite"', false)
+            ->assertDontSee('original-photo', false)
+            ->assertDontSee('id="scene-weather"', false)
             ->assertDontSee('id="wild-scrubber"', false)
             ->assertDontSee('data-play=', false)
             ->assertDontSee('class="app-window', false)
-            ->assertSeeText('This demo blends example images')
+            ->assertDontSeeText('This demo blends example images')
             ->assertSeeText('Turn the bay into a sky garden')
             ->assertSeeText('each new wallpaper is a separate OpenAI request');
     }

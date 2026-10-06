@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#fffcf6">
-    <meta name="description" content="Keep the scene. Change the atmosphere. Daydreaming reimagines your picture for the time and weather, using your own OpenAI API key. Coming soon for Mac.">
+    <meta name="description" content="Keep the scene. Change the atmosphere. Daydreaming reimagines your picture for the time and weather, using your own OpenAI API key.">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Daydreaming for Mac">
     <meta property="og:description" content="Keep the scene. Change the atmosphere. Your picture, reimagined for the time and weather on your Mac.">
@@ -77,8 +77,13 @@
                     <span class="shooting-star shooting-star-one"></span>
                     <span class="shooting-star shooting-star-two"></span>
                 </div>
+                <div class="weather-sky" aria-hidden="true">
+                    <span class="weather-cloud weather-cloud-back"></span>
+                    <span class="weather-cloud weather-cloud-front"></span>
+                    <span class="weather-particles"></span>
+                    <span class="weather-flash"></span>
+                </div>
                 <div class="hero-copy container">
-                    <p class="release-note">Coming soon for Mac</p>
                     <h1 id="hero-title">Keep the scene.<br>Change the atmosphere.</h1>
                     <p class="hero-description">Daydreaming redraws your favorite picture for the time and weather, and sets it as your Mac wallpaper.</p>
                     <p class="hero-requirements">For macOS 26 and later. Uses your own OpenAI API key.</p>
@@ -89,7 +94,7 @@
                         <button type="button" data-picture-choice="bridge" aria-pressed="true">Golden Gate Bridge</button>
                         <button type="button" data-picture-choice="yosemite" aria-pressed="false">Yosemite Valley</button>
                     </div>
-                    <div class="scene" id="scene" data-weather="clear">
+                    <div class="scene" id="scene" data-weather="clear" data-picture="bridge">
                         <picture class="hero-photo">
                             <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
                             <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
@@ -126,33 +131,11 @@
                             }
                         </script>
                         <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
-                        <div class="original-photo">
-                            <picture>
-                                <source id="original-avif" type="image/avif" srcset="{{ asset('examples/bridge-day-320.avif') }}">
-                                <img id="original-image" src="{{ asset('examples/bridge-day-320.webp') }}" alt="Original Golden Gate Bridge photograph" width="320" height="213" loading="lazy" fetchpriority="low">
-                            </picture>
-                            <span>Original</span>
-                        </div>
-                        <script>
-                            {
-                                const originalImage = document.getElementById('original-image');
-                                originalImage.addEventListener('error', () => {
-                                    const avifSource = document.getElementById('original-avif');
-                                    if (avifSource.srcset) {
-                                        avifSource.dataset.failed = 'true';
-                                        avifSource.removeAttribute('srcset');
-                                    } else {
-                                        originalImage.style.visibility = 'hidden';
-                                    }
-                                });
-                            }
-                        </script>
                     </div>
                     <div class="day-controls container">
                         <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
                         <div class="scene-caption">
                             <span id="scene-time"></span>
-                            <span id="scene-weather"></span>
                         </div>
                         <div class="time-selector">
                             <label class="sr-only" for="day-scrubber">Choose an hour of the day</label>
@@ -173,13 +156,11 @@
                         const initialTime = formatExampleTime(initialPhotoFrame.minutes);
                         document.getElementById('desktop-clock').textContent = initialTime;
                         document.getElementById('scene-time').textContent = initialTime;
-                        document.getElementById('scene-weather').textContent = initialPhotoFrame.label + ' example';
                         document.getElementById('day-scrubber').value = initialFrame;
                         document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialPhotoFrame.label.toLowerCase() + ' example');
                         document.getElementById('scene').dataset.frame = initialPhotoFrame.key;
                     </script>
-                    <noscript><p class="no-script-note">Original Golden Gate Bridge photo. Enable JavaScript to explore the examples.</p></noscript>
-                    <figcaption class="preview-note">Example variations made for this website with an AI image model. Not created by the Daydreaming app.<span class="demo-note">The app updates at the times you choose. This demo blends example images. Move the slider to stop the preview.</span></figcaption>
+                    <noscript><p class="no-script-note">Golden Gate Bridge example. Enable JavaScript to explore the examples.</p></noscript>
                 </figure>
             </section>
 
@@ -289,6 +270,22 @@
                 </div>
             </section>
 
+            <section class="makers container section" id="team" aria-labelledby="makers-title">
+                <div class="makers-copy">
+                    <h2 id="makers-title">Made with care.</h2>
+                    <p>Daydreaming is built by Freek Van der Herten at <a href="https://spatie.be">Spatie</a>. A picture you love can change with the light and weather outside, while still feeling like yours.</p>
+                    <a class="makers-github" href="https://github.com/spatie">Spatie on GitHub <span aria-hidden="true">↗</span></a>
+                </div>
+                <div class="maker-card">
+                    <img src="{{ asset('freek.webp') }}" alt="Freek Van der Herten" width="256" height="256" loading="lazy" decoding="async">
+                    <div class="maker-card-copy">
+                        <h3>Freek Van der Herten</h3>
+                        <p>Developer at <a href="https://spatie.be">Spatie</a></p>
+                        <a href="https://freek.dev">Freek’s blog</a>
+                    </div>
+                </div>
+            </section>
+
             <section class="faq container section" id="questions" aria-labelledby="faq-title">
                 <div class="section-heading">
                     <h2 id="faq-title">Questions?</h2>
@@ -345,6 +342,7 @@
         <footer class="site-footer container">
             <a class="brand footer-brand" href="{{ route('home') }}"><img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="24" height="24"><span>Daydreaming</span></a>
             <span class="weather-credit">App weather: <a href="https://www.met.no/en">MET Norway</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></span>
+            <a href="https://github.com/spatie">Spatie on GitHub</a>
             <a href="#privacy-title">Privacy</a>
         </footer>
         <p class="photo-credits container">
