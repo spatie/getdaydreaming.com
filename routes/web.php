@@ -7,6 +7,13 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
+$photoCredits = [
+    ['picture' => 'Golden Gate Bridge', 'author' => 'Edgar Chaparro', 'source' => 'https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_in_sunlight_(Unsplash).jpg', 'license' => 'CC0', 'licenseUrl' => 'https://creativecommons.org/publicdomain/zero/1.0/', 'downloaded' => '2026-10-05'],
+    ['picture' => 'Yosemite Valley', 'author' => 'NPS Photo / C. Jacoby', 'source' => 'https://www.nps.gov/places/000/tunnel-view.htm', 'license' => 'public domain', 'licenseUrl' => 'https://www.nps.gov/aboutus/disclaimer.htm', 'downloaded' => '2026-10-05'],
+];
+
+$pageCacheControl = app()->environment('local') ? 'no-store' : 'public, max-age=300, s-maxage=3600';
+
 Route::view('/', 'welcome', [
     'photoRevision' => 'ridge-20261006-2',
     'photoFrames' => [
@@ -102,11 +109,7 @@ Route::view('/', 'welcome', [
             'alt' => 'Golden Gate Bridge crossing golden desert dunes beside a turquoise river, AI-edited example',
         ],
     ],
-    'photoCredits' => [
-        ['picture' => 'Bridge', 'author' => 'Edgar Chaparro', 'source' => 'https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_in_sunlight_(Unsplash).jpg', 'license' => 'CC0', 'licenseUrl' => 'https://creativecommons.org/publicdomain/zero/1.0/', 'downloaded' => '2026-10-05'],
-        ['picture' => 'Yosemite Valley', 'author' => 'NPS Photo / C. Jacoby', 'source' => 'https://www.nps.gov/places/000/tunnel-view.htm', 'license' => 'public domain', 'licenseUrl' => 'https://www.nps.gov/aboutus/disclaimer.htm', 'downloaded' => '2026-10-05'],
-    ],
-], headers: ['Cache-Control' => 'public, max-age=300, s-maxage=3600'])
+], headers: ['Cache-Control' => $pageCacheControl])
     ->withoutMiddleware([
         StartSession::class,
         EncryptCookies::class,
@@ -115,3 +118,13 @@ Route::view('/', 'welcome', [
         ShareErrorsFromSession::class,
     ])
     ->name('home');
+
+Route::view('credits', 'credits', ['photoCredits' => $photoCredits], headers: ['Cache-Control' => $pageCacheControl])
+    ->withoutMiddleware([
+        StartSession::class,
+        EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        PreventRequestForgery::class,
+        ShareErrorsFromSession::class,
+    ])
+    ->name('credits');

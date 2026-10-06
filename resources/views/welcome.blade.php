@@ -32,24 +32,34 @@
             clock.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
             return clock.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         }
-        const hour = new Date().getHours();
-        const initialFrame = hour;
+        const now = new Date();
+        const hour = now.getHours();
+        const initialFrame = hour + now.getMinutes() / 60;
         document.documentElement.dataset.initialFrame = initialFrame;
         document.documentElement.dataset.dayPeriod = hour < 5 || hour >= 21 ? 'night' : hour < 6 ? 'dawn' : hour < 8 ? 'morning' : hour < 18 ? 'day' : hour < 20 ? 'sunset' : 'twilight';
-        const initialPhotoFrame = clearPhotoFrames.findLast(frame => frame.minutes <= initialFrame * 60);
-        const initialPhoto = initialPhotoFrame.file;
+        const initialLowerFrame = clearPhotoFrames.findLast(frame => frame.minutes <= initialFrame * 60) ?? clearPhotoFrames.at(-1);
+        const initialUpperFrame = clearPhotoFrames.find(frame => frame.minutes > initialFrame * 60) ?? clearPhotoFrames[0];
+        const initialUpperMinutes = initialUpperFrame.minutes > initialLowerFrame.minutes ? initialUpperFrame.minutes : initialUpperFrame.minutes + 1440;
+        const initialWeight = (initialFrame * 60 - initialLowerFrame.minutes) / (initialUpperMinutes - initialLowerFrame.minutes);
+        const initialNearestFrame = initialWeight < .5 ? initialLowerFrame : initialUpperFrame;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const initialPhotoFrame = reducedMotion ? initialNearestFrame : initialLowerFrame;
+        const initialOverlayFrame = reducedMotion ? initialPhotoFrame : initialUpperFrame;
+        const initialOverlayOpacity = reducedMotion ? 0 : initialWeight;
         const photoBase = @json(asset('examples'));
         const photoRevision = @json($photoRevision);
         const photoWidths = [640, 960, 1280, 1536];
         const photoSource = (file, width, format) => photoBase + '/' + file + '-' + width + '.' + format + '?v=' + photoRevision;
-        const preload = document.createElement('link');
-        preload.rel = 'preload';
-        preload.as = 'image';
-        preload.type = 'image/avif';
-        preload.imageSrcset = photoWidths.map(width => photoSource(initialPhoto, width, 'avif') + ' ' + width + 'w').join(', ');
-        preload.imageSizes = '(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px';
-        preload.fetchPriority = 'high';
-        document.head.append(preload);
+        for (const frame of [initialPhotoFrame, ...(initialOverlayOpacity > 0 ? [initialOverlayFrame] : [])]) {
+            const preload = document.createElement('link');
+            preload.rel = 'preload';
+            preload.as = 'image';
+            preload.type = 'image/avif';
+            preload.imageSrcset = photoWidths.map(width => photoSource(frame.file, width, 'avif') + ' ' + width + 'w').join(', ');
+            preload.imageSizes = '(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px';
+            preload.fetchPriority = 'high';
+            document.head.append(preload);
+        }
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -100,39 +110,57 @@
                         <button type="button" data-picture-choice="bridge" aria-pressed="false">Golden Gate Bridge</button>
                     </div>
                     <div class="scene" id="scene" data-weather="clear" data-picture="yosemite">
-                        <picture class="hero-photo">
-                            <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                            <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                            <img id="scene-image" alt="Yosemite Valley example" width="1536" height="1024" fetchpriority="high" decoding="async">
-                        </picture>
+                        <div class="initial-photo" id="initial-photo">
+                            <picture class="hero-photo">
+                                <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
+                                <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
+                                <img id="scene-image" alt="Yosemite Valley example" width="1536" height="1024" fetchpriority="high" decoding="async">
+                            </picture>
+                            <picture class="hero-photo initial-photo-overlay" id="initial-photo-overlay" aria-hidden="true">
+                                <source id="scene-overlay-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
+                                <source id="scene-overlay-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
+                                <img id="scene-overlay-image" alt="" width="1536" height="1024" decoding="async">
+                            </picture>
+                        </div>
                         <script>
                             {
                                 const sceneImage = document.getElementById('scene-image');
-                                const scene = document.getElementById('scene');
-                                let decoded = false;
-                                sceneImage.addEventListener('error', () => {
-                                    const avifSource = document.getElementById('scene-avif');
-                                    if (avifSource.srcset) {
-                                        avifSource.removeAttribute('srcset');
-                                    } else {
-                                        sceneImage.style.visibility = 'hidden';
-                                    }
-                                });
-                                sceneImage.addEventListener('load', () => {
-                                    sceneImage.decode().then(() => {
-                                        decoded = true;
-                                        scene.style.backgroundImage = 'none';
-                                    }).catch(() => {});
-                                });
-                                document.getElementById('scene-avif').srcset = photoWidths.map(width => photoSource(initialPhoto, width, 'avif') + ' ' + width + 'w').join(', ');
-                                document.getElementById('scene-webp').srcset = photoWidths.map(width => photoSource(initialPhoto, width, 'webp') + ' ' + width + 'w').join(', ');
-                                sceneImage.src = photoSource(initialPhoto, 1280, 'webp');
-                                sceneImage.alt = initialPhotoFrame.alt;
-                                setTimeout(() => {
-                                    if (!decoded) {
-                                        scene.style.backgroundImage = 'url("' + photoSource(initialPhoto, 640, 'webp') + '")';
-                                    }
-                                }, 150);
+                                const overlayImage = document.getElementById('scene-overlay-image');
+                                const photoContainer = document.getElementById('initial-photo');
+                                const overlay = document.getElementById('initial-photo-overlay');
+                                const neededImages = initialOverlayOpacity > 0 ? 2 : 1;
+                                let readyImages = 0;
+
+                                function prepareInitialImage(image, frame, avifSource, webpSource) {
+                                    image.addEventListener('load', () => {
+                                        image.decode().catch(() => {}).finally(() => {
+                                            readyImages++;
+                                            if (readyImages === neededImages) {
+                                                photoContainer.classList.add('is-ready');
+                                            }
+                                        });
+                                    }, { once: true });
+                                    image.addEventListener('error', () => {
+                                        if (avifSource.srcset) {
+                                            avifSource.removeAttribute('srcset');
+                                            return;
+                                        }
+                                        readyImages++;
+                                        if (readyImages === neededImages) {
+                                            photoContainer.classList.add('is-ready');
+                                        }
+                                    });
+                                    avifSource.srcset = photoWidths.map(width => photoSource(frame.file, width, 'avif') + ' ' + width + 'w').join(', ');
+                                    webpSource.srcset = photoWidths.map(width => photoSource(frame.file, width, 'webp') + ' ' + width + 'w').join(', ');
+                                    image.src = photoSource(frame.file, 1280, 'webp');
+                                }
+
+                                prepareInitialImage(sceneImage, initialPhotoFrame, document.getElementById('scene-avif'), document.getElementById('scene-webp'));
+                                sceneImage.alt = initialNearestFrame.alt;
+                                overlay.style.opacity = initialOverlayOpacity;
+                                if (initialOverlayOpacity > 0) {
+                                    prepareInitialImage(overlayImage, initialOverlayFrame, document.getElementById('scene-overlay-avif'), document.getElementById('scene-overlay-webp'));
+                                }
                             }
                         </script>
                         <noscript><img class="hero-photo-fallback" src="{{ asset('examples/yosemite-clear-day-1280.webp') }}?v={{ $photoRevision }}" alt="Yosemite Valley in daylight" width="1536" height="1024"></noscript>
@@ -160,11 +188,11 @@
                     </div>
                     <p id="scene-announcement" class="sr-only" role="status"></p>
                     <script>
-                        const initialTime = formatExampleTime(initialPhotoFrame.minutes);
+                        const initialTime = formatExampleTime(initialFrame * 60);
                         document.getElementById('scene-time').textContent = initialTime;
                         document.getElementById('day-scrubber').value = initialFrame;
-                        document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialPhotoFrame.label.toLowerCase() + ' example');
-                        document.getElementById('scene').dataset.frame = initialPhotoFrame.key;
+                        document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialNearestFrame.label.toLowerCase() + ' example');
+                        document.getElementById('scene').dataset.frame = initialNearestFrame.key;
                     </script>
                     <noscript><p class="no-script-note">Yosemite Valley example. Enable JavaScript to explore the examples.</p></noscript>
                 </figure>
@@ -338,7 +366,7 @@
         </main>
 
         <footer class="site-footer">
-            <div class="footer-art" aria-hidden="true"><span class="footer-orb"></span><span class="footer-horizon"></span></div>
+            <div class="footer-art" aria-hidden="true"><span class="footer-horizon"></span></div>
             <div class="footer-inner container">
                 <div class="footer-main">
                     <div class="footer-intro">
@@ -361,16 +389,7 @@
                         </div>
                     </nav>
                 </div>
-                <div class="footer-credits">
-                    <p>Weather data from <a href="https://www.met.no/en">MET Norway</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>).</p>
-                    <p class="photo-credits">
-                        @foreach($photoCredits as $credit)
-                            {{ $credit['picture'] }} photo: <a href="{{ $credit['source'] }}">{{ $credit['author'] }}</a>
-                            (<a href="{{ $credit['licenseUrl'] }}">{{ $credit['license'] }}</a>).
-                        @endforeach
-                        Example edits made for this website.
-                    </p>
-                </div>
+                <a class="footer-credit-link" href="{{ route('credits') }}">Credits</a>
             </div>
         </footer>
         <script id="photo-frames" type="application/json">{!! json_encode(['bridge' => $photoFrames, 'yosemite' => $yosemiteFrames], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
