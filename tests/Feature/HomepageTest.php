@@ -11,7 +11,7 @@ class HomepageTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSeeText('Daydreaming for Mac')
-            ->assertSeeText('See your favorite wallpaper in a different light.')
+            ->assertSeeText('See your old wallpaper in a new light.')
             ->assertSeeText('Meet the dreamer.')
             ->assertSee('spatie-logo.svg')
             ->assertSee('href="https://runbloom.app"', false)

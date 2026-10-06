@@ -18,7 +18,7 @@
     <link rel="canonical" href="{{ route('home') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
-    <title>Daydreaming for Mac | See your favorite wallpaper in a different light.</title>
+    <title>Daydreaming for Mac | See your old wallpaper in a new light.</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('daydreaming-favicon.png') }}">
@@ -111,7 +111,7 @@
                     <span class="weather-illumination"></span>
                 </div>
                 <div class="hero-copy container">
-                    <h1 id="hero-title">See your favorite wallpaper in a different light.</h1>
+                    <h1 id="hero-title">See your old wallpaper in a new light.</h1>
                     <p class="hero-description">Daydreaming uses AI to match your picture to the time and local weather, then sets it as your Mac wallpaper.</p>
                     <p class="hero-requirements">Requires macOS 26 or later and your own OpenAI API key.</p>
                 </div>
@@ -427,7 +427,7 @@
                 <div class="footer-main">
                     <div class="footer-intro">
                         <a class="brand footer-brand" href="{{ route('home') }}"><img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="40" height="40"><span>Daydreaming</span></a>
-                        <p>See your favorite wallpaper in a different light.</p>
+                        <p>See your old wallpaper in a new light.</p>
                     </div>
                     <nav class="footer-nav" aria-label="Footer navigation">
                         <div>
