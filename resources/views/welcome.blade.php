@@ -18,7 +18,7 @@
     <link rel="canonical" href="{{ route('home') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
-    <title>Daydreaming for Mac | Keep the scene. Change the atmosphere.</title>
+    <title>Daydreaming for Mac | See your favorite wallpaper in a different light.</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('daydreaming-favicon.png') }}">
@@ -99,7 +99,7 @@
                     <span class="weather-illumination"></span>
                 </div>
                 <div class="hero-copy container">
-                    <h1 id="hero-title">Keep the scene.<br>Change the atmosphere.</h1>
+                    <h1 id="hero-title">See your favorite wallpaper in a different light.</h1>
                     <p class="hero-description">Daydreaming uses AI to match your picture to the time and local weather, then sets it as your Mac wallpaper.</p>
                     <p class="hero-requirements">Requires macOS 26 or later and your own OpenAI API key.</p>
                 </div>
@@ -298,16 +298,30 @@
 
             <section class="makers container section" id="team" aria-labelledby="makers-title">
                 <div class="makers-copy">
-                    <h2 id="makers-title">Made with care.</h2>
-                    <p>Daydreaming is built by Freek Van der Herten at <a href="https://spatie.be">Spatie</a>. A picture you love can change with the light and weather outside, while still feeling like yours.</p>
-                    <a class="makers-github" href="https://github.com/spatie">Spatie on GitHub <span aria-hidden="true">↗</span></a>
+                    <h2 id="makers-title">Meet the dreamer.</h2>
+                    <p>I'm Freek, a developer and partner at Spatie. I build tools for developers, write about what I learn, and make personal projects for the Mac and the web.</p>
+                    <p>Daydreaming is one of them. It keeps the wallpaper you chose and lets the light and weather around it change through the day.</p>
                 </div>
                 <div class="maker-card">
                     <img src="{{ asset('freek.webp') }}" alt="Freek Van der Herten" width="256" height="256" loading="lazy" decoding="async">
                     <div class="maker-card-copy">
                         <h3>Freek Van der Herten</h3>
-                        <p>Developer at <a href="https://spatie.be">Spatie</a></p>
-                        <a href="https://freek.dev">Freek’s blog</a>
+                        <p>Developer and partner at Spatie</p>
+                        <a class="maker-spatie" href="https://spatie.be"><img src="{{ asset('spatie-logo.svg') }}" alt="Spatie" width="110" height="49" loading="lazy"></a>
+                        <nav class="maker-links" aria-label="Freek's links">
+                            <a href="https://freek.dev" aria-label="Freek's blog">Blog</a>
+                            <a href="https://x.com/freekmurze" aria-label="Freek on X">X</a>
+                            <a href="https://www.linkedin.com/in/freek-van-der-herten-3487a7181" aria-label="Freek on LinkedIn">LinkedIn</a>
+                        </nav>
+                    </div>
+                </div>
+                <div class="maker-projects">
+                    <h3>More things I've made</h3>
+                    <div class="maker-project-grid">
+                        <a href="https://runbloom.app"><strong>Bloom</strong><span>A Mac app for coding agents</span><span aria-hidden="true">↗</span></a>
+                        <a href="https://ohdear.app"><strong>Oh Dear</strong><span>Website monitoring</span><span aria-hidden="true">↗</span></a>
+                        <a href="https://flareapp.io"><strong>Flare</strong><span>Error tracking for PHP</span><span aria-hidden="true">↗</span></a>
+                        <a href="https://freeksrecords.com"><strong>Freek's Records</strong><span>My vinyl collection</span><span aria-hidden="true">↗</span></a>
                     </div>
                 </div>
             </section>
@@ -371,7 +385,7 @@
                 <div class="footer-main">
                     <div class="footer-intro">
                         <a class="brand footer-brand" href="{{ route('home') }}"><img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="40" height="40"><span>Daydreaming</span></a>
-                        <p>See your favorite picture in a different light.</p>
+                        <p>See your favorite wallpaper in a different light.</p>
                     </div>
                     <nav class="footer-nav" aria-label="Footer navigation">
                         <div>
