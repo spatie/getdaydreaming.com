@@ -101,8 +101,10 @@ class HomepageTest extends TestCase
         $this->assertFileExists(public_path('icon-maskable-512.png'));
         $this->assertFileExists(public_path('daydreaming-social.jpg'));
         $response->assertSee('max="24" step="any"', false)
-            ->assertSee('data-picture-choice="bridge"', false)
-            ->assertSee('data-picture-choice="yosemite"', false)
+            ->assertSee('data-picture-choice="yosemite" aria-pressed="true"', false)
+            ->assertSee('data-picture-choice="bridge" aria-pressed="false"', false)
+            ->assertSee('data-picture="yosemite"', false)
+            ->assertSee('examples/yosemite-clear-day-1280.webp', false)
             ->assertDontSee('original-photo', false)
             ->assertDontSee('id="scene-weather"', false)
             ->assertDontSee('id="wild-scrubber"', false)

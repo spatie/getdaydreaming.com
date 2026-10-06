@@ -24,7 +24,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('daydreaming-favicon.png') }}">
     <script>
         document.documentElement.classList.remove('no-js');
-        const photoFrames = @json($photoFrames);
+        const photoFrames = @json($yosemiteFrames);
         const clearPhotoFrames = photoFrames.filter(frame => frame.weather === 'clear');
         function formatExampleTime(minutes) {
             const clock = new Date();
@@ -36,7 +36,7 @@
         const initialFrame = hour;
         document.documentElement.dataset.initialFrame = initialFrame;
         document.documentElement.dataset.dayPeriod = hour < 5 || hour >= 21 ? 'night' : hour < 6 ? 'dawn' : hour < 8 ? 'morning' : hour < 18 ? 'day' : hour < 20 ? 'sunset' : 'twilight';
-        const initialPhotoFrame = clearPhotoFrames[initialFrame];
+        const initialPhotoFrame = clearPhotoFrames.findLast(frame => frame.minutes <= initialFrame * 60);
         const initialPhoto = initialPhotoFrame.file;
         const photoBase = @json(asset('examples'));
         const photoRevision = @json($photoRevision);
@@ -88,14 +88,14 @@
 
                 <figure class="preview" id="preview">
                     <div class="scene-picker" role="group" aria-label="Choose a picture">
-                        <button type="button" data-picture-choice="bridge" aria-pressed="true">Golden Gate Bridge</button>
-                        <button type="button" data-picture-choice="yosemite" aria-pressed="false">Yosemite Valley</button>
+                        <button type="button" data-picture-choice="yosemite" aria-pressed="true">Yosemite Valley</button>
+                        <button type="button" data-picture-choice="bridge" aria-pressed="false">Golden Gate Bridge</button>
                     </div>
-                    <div class="scene" id="scene" data-weather="clear" data-picture="bridge">
+                    <div class="scene" id="scene" data-weather="clear" data-picture="yosemite">
                         <picture class="hero-photo">
                             <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
                             <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                            <img id="scene-image" alt="Golden Gate Bridge example" width="1536" height="1024" fetchpriority="high" decoding="async">
+                            <img id="scene-image" alt="Yosemite Valley example" width="1536" height="1024" fetchpriority="high" decoding="async">
                         </picture>
                         <script>
                             {
@@ -127,7 +127,7 @@
                                 }, 150);
                             }
                         </script>
-                        <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}?v={{ $photoRevision }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
+                        <noscript><img class="hero-photo-fallback" src="{{ asset('examples/yosemite-clear-day-1280.webp') }}?v={{ $photoRevision }}" alt="Yosemite Valley in daylight" width="1536" height="1024"></noscript>
                         <canvas id="weather-scene-canvas" class="weather-scene-canvas" aria-hidden="true"></canvas>
                         <span class="weather-scene-illumination" aria-hidden="true"></span>
                     </div>
@@ -158,7 +158,7 @@
                         document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialPhotoFrame.label.toLowerCase() + ' example');
                         document.getElementById('scene').dataset.frame = initialPhotoFrame.key;
                     </script>
-                    <noscript><p class="no-script-note">Golden Gate Bridge example. Enable JavaScript to explore the examples.</p></noscript>
+                    <noscript><p class="no-script-note">Yosemite Valley example. Enable JavaScript to explore the examples.</p></noscript>
                 </figure>
             </section>
 

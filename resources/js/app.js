@@ -462,8 +462,8 @@ if (scene && scrubber && frameData) {
     const photoSets = JSON.parse(frameData.textContent);
     const pictureButtons = [...document.querySelectorAll('[data-picture-choice]')];
     const weatherButtons = [...document.querySelectorAll('[data-weather-choice]')];
-    let picture = 'bridge';
-    let displayedPicture = 'bridge';
+    let picture = 'yosemite';
+    let displayedPicture = 'yosemite';
     let weather = 'clear';
     let displayedWeather = 'clear';
     const demo = createDemo({
