@@ -425,6 +425,7 @@ function createRenderer(image) {
             banks[outgoing].availableAt = performance.now() + (reducedMotion ? 0 : 400);
             banks[next].bank.style.opacity = '1';
             stage.style.opacity = '1';
+            stage.parentElement.classList.add('is-ready');
             captionReadyAt = performance.now() + (reducedMotion ? 0 : 180);
             active = next;
             setTimeout(() => {

@@ -29,6 +29,9 @@ class HomepageTest extends TestCase
             ->assertDontSeeText('Pro license')
             ->assertSeeText('macOS Keychain')
             ->assertSeeText('MET Norway')
+            ->assertSee('href="'.route('credits').'"', false)
+            ->assertDontSeeText('Edgar Chaparro')
+            ->assertDontSeeText('NPS Photo / C. Jacoby')
             ->assertSeeText('fixed weather condition in Customize')
             ->assertSeeText('Not created by the Daydreaming app')
             ->assertSeeText('Luminous bay')
@@ -53,6 +56,30 @@ class HomepageTest extends TestCase
             ->assertOk()
             ->assertHeaderMissing('Set-Cookie')
             ->assertHeader('Cache-Control', 'max-age=300, public, s-maxage=3600');
+    }
+
+    public function test_credits_page_preserves_weather_and_photo_attributions(): void
+    {
+        $response = $this->get(route('credits'))
+            ->assertOk()
+            ->assertHeaderMissing('Set-Cookie')
+            ->assertSeeText('MET Norway')
+            ->assertSeeText('CC BY 4.0')
+            ->assertSeeText('Edgar Chaparro')
+            ->assertSeeText('CC0')
+            ->assertSeeText('NPS Photo / C. Jacoby')
+            ->assertSeeText('public domain');
+
+        foreach ([
+            'https://www.met.no/en',
+            'https://creativecommons.org/licenses/by/4.0/',
+            'https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_in_sunlight_(Unsplash).jpg',
+            'https://creativecommons.org/publicdomain/zero/1.0/',
+            'https://www.nps.gov/places/000/tunnel-view.htm',
+            'https://www.nps.gov/aboutus/disclaimer.htm',
+        ] as $url) {
+            $response->assertSee($url, false);
+        }
     }
 
     public function test_homepage_has_a_full_day_storm_and_custom_prompt_examples(): void
