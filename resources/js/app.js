@@ -1,10 +1,11 @@
 import { framePair, keyboardHour, shouldAutoplay } from './photo-demo';
 import { skyPalette } from './sky-theme';
+import { createWeatherAtmosphere } from './weather-atmosphere';
 
 const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
 const saveData = navigator.connection?.saveData === true;
 const baseElement = document.getElementById('photo-base');
-const base = baseElement ? JSON.parse(baseElement.textContent) : '';
+const { url: base, revision: photoRevision } = baseElement ? JSON.parse(baseElement.textContent) : { url: '', revision: '' };
 const imageCache = new Map();
 const photoToneCache = new Map();
 const demos = [];
@@ -62,19 +63,19 @@ function applySkyTheme(hour) {
 }
 renderSkyTheme(themeHour);
 const initialImage = document.getElementById('scene-image');
-let extension = initialImage?.currentSrc.endsWith('.avif') ? 'avif' : 'webp';
+let extension = initialImage?.currentSrc.includes('.avif?') ? 'avif' : 'webp';
 
 function loadPhoto(frame, width = 640) {
-    const source = `${base}/${frame.file}-${width}.${extension}`;
+    const source = `${base}/${frame.file}-${width}.${extension}?v=${photoRevision}`;
     if (!imageCache.has(source)) {
         const photo = new Image();
         photo.src = source;
         const pending = photo.decode().catch(async (error) => {
-            if (!source.endsWith('.avif')) {
+            if (!source.includes('.avif?')) {
                 throw error;
             }
             extension = 'webp';
-            photo.src = `${base}/${frame.file}-${width}.webp`;
+            photo.src = `${base}/${frame.file}-${width}.webp?v=${photoRevision}`;
             await photo.decode();
         }).then(() => photo).catch((error) => {
             imageCache.delete(source);
@@ -266,7 +267,7 @@ function createRenderer(image) {
     };
 }
 
-function createDemo({ range, image, area, feedback, framesForSelection, sceneName, onDisplay, onTimeChange, onDayComplete }) {
+function createDemo({ range, image, area, feedback, framesForSelection, sceneName, onDisplay, onTimeChange, onDayComplete, onPause }) {
     const renderer = createRenderer(image);
     const hero = area.closest('.hero');
     let playing = shouldAutoplay({ reducedMotion: motionPreference.matches, saveData });
@@ -285,6 +286,7 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
         area.dataset.playing = 'false';
         hero.dataset.playing = 'false';
         document.body.dataset.playing = 'false';
+        onPause?.();
     }
 
     function prefetch(pair) {
@@ -301,7 +303,7 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
         idle(() => [frames[index], frames[(index + 1) % frames.length]].forEach((frame) => loadPhoto(frame, renderer.previewWidth()).catch(() => {})));
     }
 
-    async function display(hour, { announce = false, user = false, keepTime = false, pauseOnFailure = true } = {}) {
+    async function display(hour, { announce = false, user = false, weatherPreview = false, keepTime = false, pauseOnFailure = true } = {}) {
         const currentRequest = ++request;
         const pair = framePair(framesForSelection(), hour);
         const nearest = pair.weight < .5 ? pair.lower : pair.upper;
@@ -317,7 +319,7 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
                 range.value = hour;
             }
             feedback.hidden = true;
-            onDisplay(hour, nearest, announce, renderedPhoto);
+            onDisplay(hour, nearest, announce, renderedPhoto, weatherPreview);
             if (!playing || user) {
                 renderer.upgrade(pair, description);
             }
@@ -433,6 +435,7 @@ const scene = document.getElementById('scene');
 const scrubber = document.getElementById('day-scrubber');
 const frameData = document.getElementById('photo-frames');
 if (scene && scrubber && frameData) {
+    const atmosphere = createWeatherAtmosphere(heroElement, scene);
     const photoSets = JSON.parse(frameData.textContent);
     const pictureButtons = [...document.querySelectorAll('[data-picture-choice]')];
     const weatherButtons = [...document.querySelectorAll('[data-weather-choice]')];
@@ -448,6 +451,7 @@ if (scene && scrubber && frameData) {
         framesForSelection: () => photoSets[picture].filter(frame => frame.weather === weather),
         sceneName: () => picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley',
         onTimeChange: applySkyTheme,
+        onPause: atmosphere.stop,
         onDayComplete() {
             const choices = weatherButtons.map((button) => button.dataset.weatherChoice);
             const nextWeather = (choices.indexOf(weather) + 1) % choices.length;
@@ -456,7 +460,7 @@ if (scene && scrubber && frameData) {
                 picture = picture === 'bridge' ? 'yosemite' : 'bridge';
             }
         },
-        onDisplay(hour, frame, announce, photo) {
+        onDisplay(hour, frame, announce, photo, weatherPreview) {
             applyPhotoTone(photo, frame);
             const time = formatExampleTime(hour * 60);
             const period = hour < 5 || hour >= 21 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
@@ -469,6 +473,7 @@ if (scene && scrubber && frameData) {
             scrubber.setAttribute('aria-valuetext', `${time}, ${label.toLowerCase()}`);
             scene.dataset.weather = weather;
             document.body.dataset.weather = weather;
+            atmosphere.setWeather(weather, { preview: weatherPreview });
             scene.dataset.frame = frame.key;
             scene.dataset.picture = picture;
             pictureButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.pictureChoice === picture)));
@@ -503,7 +508,7 @@ if (scene && scrubber && frameData) {
         button.addEventListener('click', async () => {
             demo.pause();
             weather = button.dataset.weatherChoice;
-            const result = await demo.display(Number(scrubber.value), { announce: true, user: true });
+            const result = await demo.display(Number(scrubber.value), { announce: true, user: true, weatherPreview: true });
             if (result === 'failed' && weather === button.dataset.weatherChoice) {
                 weather = displayedWeather;
             }

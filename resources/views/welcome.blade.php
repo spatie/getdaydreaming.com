@@ -39,12 +39,14 @@
         const initialPhotoFrame = clearPhotoFrames[initialFrame];
         const initialPhoto = initialPhotoFrame.file;
         const photoBase = @json(asset('examples'));
+        const photoRevision = @json($photoRevision);
         const photoWidths = [640, 960, 1280, 1536];
+        const photoSource = (file, width, format) => photoBase + '/' + file + '-' + width + '.' + format + '?v=' + photoRevision;
         const preload = document.createElement('link');
         preload.rel = 'preload';
         preload.as = 'image';
         preload.type = 'image/avif';
-        preload.imageSrcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
+        preload.imageSrcset = photoWidths.map(width => photoSource(initialPhoto, width, 'avif') + ' ' + width + 'w').join(', ');
         preload.imageSizes = '(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px';
         preload.fetchPriority = 'high';
         document.head.append(preload);
@@ -54,6 +56,7 @@
 <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <div class="page-shell">
+        <canvas id="weather-page-canvas" aria-hidden="true"></canvas>
         <div class="desktop-menu" aria-hidden="true">
             <span>Daydreaming</span>
             <span class="desktop-weather"><span id="desktop-weather-icon">@include('weatherIcon', ['weather' => 'clear'])</span><span id="desktop-clock"></span></span>
@@ -78,10 +81,8 @@
                     <span class="shooting-star shooting-star-two"></span>
                 </div>
                 <div class="weather-sky" aria-hidden="true">
-                    <span class="weather-cloud weather-cloud-back"></span>
-                    <span class="weather-cloud weather-cloud-front"></span>
-                    <span class="weather-particles"></span>
-                    <span class="weather-flash"></span>
+                    <canvas id="weather-sky-canvas"></canvas>
+                    <span class="weather-illumination"></span>
                 </div>
                 <div class="hero-copy container">
                     <h1 id="hero-title">Keep the scene.<br>Change the atmosphere.</h1>
@@ -119,18 +120,20 @@
                                         scene.style.backgroundImage = 'none';
                                     }).catch(() => {});
                                 });
-                                document.getElementById('scene-avif').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
-                                document.getElementById('scene-webp').srcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.webp ' + width + 'w').join(', ');
-                                sceneImage.src = photoBase + '/' + initialPhoto + '-1280.webp';
+                                document.getElementById('scene-avif').srcset = photoWidths.map(width => photoSource(initialPhoto, width, 'avif') + ' ' + width + 'w').join(', ');
+                                document.getElementById('scene-webp').srcset = photoWidths.map(width => photoSource(initialPhoto, width, 'webp') + ' ' + width + 'w').join(', ');
+                                sceneImage.src = photoSource(initialPhoto, 1280, 'webp');
                                 sceneImage.alt = initialPhotoFrame.alt;
                                 setTimeout(() => {
                                     if (!decoded) {
-                                        scene.style.backgroundImage = 'url("' + photoBase + '/' + initialPhoto + '-640.webp")';
+                                        scene.style.backgroundImage = 'url("' + photoSource(initialPhoto, 640, 'webp') + '")';
                                     }
                                 }, 150);
                             }
                         </script>
-                        <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
+                        <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}?v={{ $photoRevision }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
+                        <canvas id="weather-scene-canvas" class="weather-scene-canvas" aria-hidden="true"></canvas>
+                        <span class="weather-scene-illumination" aria-hidden="true"></span>
                     </div>
                     <div class="day-controls container">
                         <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
@@ -195,7 +198,7 @@
                     @foreach($promptExamples as $example)
                         <article class="prompt-card">
                             <picture>
-                                <img src="{{ asset('examples/'.$example['file'].'-1280.webp') }}" srcset="{{ asset('examples/'.$example['file'].'-640.webp') }} 640w, {{ asset('examples/'.$example['file'].'-960.webp') }} 960w, {{ asset('examples/'.$example['file'].'-1280.webp') }} 1280w, {{ asset('examples/'.$example['file'].'-1536.webp') }} 1536w" sizes="(max-width: 700px) calc(100vw - 40px), 580px" alt="{{ $example['alt'] }}" width="1536" height="1024" loading="lazy" decoding="async" fetchpriority="low">
+                                <img src="{{ asset('examples/'.$example['file'].'-1280.webp') }}?v={{ $photoRevision }}" srcset="{{ asset('examples/'.$example['file'].'-640.webp') }}?v={{ $photoRevision }} 640w, {{ asset('examples/'.$example['file'].'-960.webp') }}?v={{ $photoRevision }} 960w, {{ asset('examples/'.$example['file'].'-1280.webp') }}?v={{ $photoRevision }} 1280w, {{ asset('examples/'.$example['file'].'-1536.webp') }}?v={{ $photoRevision }} 1536w" sizes="(max-width: 700px) calc(100vw - 40px), 580px" alt="{{ $example['alt'] }}" width="1536" height="1024" loading="lazy" decoding="async" fetchpriority="low">
                             </picture>
                             <div class="prompt-card-copy">
                                 <span class="prompt-number">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }} / {{ count($promptExamples) }}</span>
@@ -339,21 +342,44 @@
             </section>
         </main>
 
-        <footer class="site-footer container">
-            <a class="brand footer-brand" href="{{ route('home') }}"><img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="24" height="24"><span>Daydreaming</span></a>
-            <span class="weather-credit">App weather: <a href="https://www.met.no/en">MET Norway</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></span>
-            <a href="https://github.com/spatie">Spatie on GitHub</a>
-            <a href="#privacy-title">Privacy</a>
+        <footer class="site-footer">
+            <div class="footer-art" aria-hidden="true"><span class="footer-orb"></span><span class="footer-horizon"></span></div>
+            <div class="footer-inner container">
+                <div class="footer-main">
+                    <div class="footer-intro">
+                        <a class="brand footer-brand" href="{{ route('home') }}"><img src="{{ asset('daydreaming-icon.webp') }}" alt="" width="40" height="40"><span>Daydreaming</span></a>
+                        <p>See your favorite picture in a different light.</p>
+                    </div>
+                    <nav class="footer-nav" aria-label="Footer navigation">
+                        <div>
+                            <h2>Explore</h2>
+                            <a href="#how-it-works">How it works</a>
+                            <a href="#what-it-costs">What it costs</a>
+                            <a href="#questions">Questions</a>
+                            <a href="#privacy-title">Privacy</a>
+                        </div>
+                        <div>
+                            <h2>Elsewhere</h2>
+                            <a href="https://spatie.be">Spatie</a>
+                            <a href="https://github.com/spatie">Spatie on GitHub</a>
+                            <a href="https://freek.dev">Freek’s blog</a>
+                        </div>
+                    </nav>
+                </div>
+                <div class="footer-credits">
+                    <p>Weather data from <a href="https://www.met.no/en">MET Norway</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>).</p>
+                    <p class="photo-credits">
+                        @foreach($photoCredits as $credit)
+                            {{ $credit['picture'] }} photo: <a href="{{ $credit['source'] }}">{{ $credit['author'] }}</a>
+                            (<a href="{{ $credit['licenseUrl'] }}">{{ $credit['license'] }}</a>).
+                        @endforeach
+                        Example edits made for this website.
+                    </p>
+                </div>
+            </div>
         </footer>
-        <p class="photo-credits container">
-            @foreach($photoCredits as $credit)
-                {{ $credit['picture'] }} photo: <a href="{{ $credit['source'] }}">{{ $credit['author'] }}</a>
-                (<a href="{{ $credit['licenseUrl'] }}">{{ $credit['license'] }}</a>).
-            @endforeach
-            Example edits made for this website.
-        </p>
         <script id="photo-frames" type="application/json">{!! json_encode(['bridge' => $photoFrames, 'yosemite' => $yosemiteFrames], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
-        <script id="photo-base" type="application/json">@json(asset('examples'))</script>
+        <script id="photo-base" type="application/json">@json(['url' => asset('examples'), 'revision' => $photoRevision])</script>
         @foreach(['clear', 'rain', 'snow', 'fog', 'storm', 'night'] as $weather)
             <template data-icon-template="{{ $weather }}">@include('weatherIcon', ['weather' => $weather])</template>
         @endforeach
