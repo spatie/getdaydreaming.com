@@ -24,18 +24,18 @@
     -webkit-font-smoothing: antialiased;
 }
 html[data-day-period="night"], html[data-day-period="dawn"] {
-    --background: #0d1830;
-    --surface: #182943;
+    --background: #070d1c;
+    --surface: #111f36;
     --ink: #f2f5f8;
     --muted: #dce8f2;
     --line: #a6c2dc;
     --accent: #b9e8ff;
-    --privacy: #142b39;
-    --control: #1c2d46;
-    --selected: #344960;
-    --sky: #091327;
-    --glow: #425e8a;
-    --stars: .85;
+    --privacy: #102332;
+    --control: #16243a;
+    --selected: #293c56;
+    --sky: #030916;
+    --glow: #213456;
+    --stars: 1;
 }
 html[data-day-period="morning"] {
     --background: #f9ddc9;
@@ -66,7 +66,7 @@ html[data-day-period="sunset"] {
     --stars: .06;
 }
 html[data-day-period="twilight"] {
-    --background: #17284a;
+    --background: #111f3d;
     --surface: #223654;
     --ink: #f2f5f8;
     --muted: #f2f5f8;
@@ -75,9 +75,9 @@ html[data-day-period="twilight"] {
     --privacy: #203a48;
     --control: #263a59;
     --selected: #39516c;
-    --sky: #112244;
-    --glow: #6e729c;
-    --stars: .7;
+    --sky: #0a1832;
+    --glow: #455681;
+    --stars: .75;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 28px; }
@@ -91,13 +91,14 @@ body[data-night="true"][data-weather="rain"], body[data-night="true"][data-weath
 body[data-night="true"][data-weather="fog"], body[data-night="true"][data-weather="storm"] { --cloud-opacity: .31; }
 body[data-weather="fog"] { --weather-sky: .3; }
 body[data-weather="rain"], body[data-weather="snow"], body[data-weather="storm"] { --weather-sky: 0; }
-body::before { --star-opacity: calc(var(--stars) * var(--weather-sky) * .3); content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: var(--star-opacity); background: url('./stars.svg') center / cover no-repeat; animation: stars-breathe 9s ease-in-out infinite alternate-reverse; }
+body::before { --star-opacity: calc(var(--stars) * var(--weather-sky) * .24); content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: var(--star-opacity); background: url('./stars.svg') center / cover no-repeat; animation: stars-breathe 9s ease-in-out infinite alternate-reverse; }
 body::after { content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none; background: #e6f3ff; mix-blend-mode: screen; opacity: calc(var(--weather-flash, 0) * .48); }
-.page-theme { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #f5e7e6; }
-.page-theme::after { content: ""; position: absolute; inset: -8%; opacity: .7; background: radial-gradient(ellipse 36% 24% at 12% 18%, #ffdb9c80, transparent 95%), radial-gradient(ellipse 36% 30% at 90% 34%, #b6e6ef8c, transparent 95%), radial-gradient(ellipse 40% 24% at 42% 88%, #d9c1f587, transparent 95%); animation: atmosphere-drift 28s ease-in-out infinite alternate; }
+.page-theme { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--background); }
+.page-theme::after { content: ""; position: absolute; inset: -8%; opacity: .7; background: radial-gradient(ellipse 36% 24% at 12% 18%, color-mix(in srgb, var(--glow) 38%, transparent), transparent 95%), radial-gradient(ellipse 36% 30% at 90% 34%, color-mix(in srgb, var(--sky) 34%, transparent), transparent 95%), radial-gradient(ellipse 40% 24% at 42% 88%, color-mix(in srgb, var(--glow) 26%, transparent), transparent 95%); animation: atmosphere-drift 28s ease-in-out infinite alternate; }
 @keyframes atmosphere-drift { from { transform: translate3d(-2%, 1%, 0) scale(1.02); } to { transform: translate3d(2%, -1%, 0) scale(1.06); } }
 .page-theme-layer { position: absolute; inset: 0; display: block; opacity: 0; transition: opacity 900ms linear; will-change: opacity; transform: translateZ(0); }
 .page-theme-layer:first-child { opacity: 1; background: linear-gradient(170deg, #fff5d7, #ffdcc5 28%, #f7d5db 49%, #dcdaf5 72%, #d2e8f5); }
+html:is([data-day-period="night"], [data-day-period="dawn"], [data-day-period="twilight"]) .page-theme-layer:first-child { background: linear-gradient(170deg, #060d1d, #0a1730 32%, #101b36 66%, #0a172d); }
 .page-shell { position: relative; z-index: 2; }
 #weather-page-canvas { position: fixed; inset: 0; z-index: 1; display: block; width: 100vw; height: 100vh; pointer-events: none; }
 a { color: inherit; text-underline-offset: 4px; }
@@ -138,9 +139,9 @@ html:not(.no-js) .hero { background: transparent; }
 @keyframes stars-twinkle { from { opacity: .24; } to { opacity: .92; } }
 @keyframes moon-drift { from { transform: translate3d(0, 0, 0) rotate(-1deg) scale(.985); } to { transform: translate3d(-8px, 6px, 0) rotate(1deg) scale(1.015); } }
 @keyframes shooting-star { 0%, 82% { opacity: 0; transform: rotate(-28deg) translate3d(0, 0, 0); } 84% { opacity: .9; } 88% { opacity: 0; transform: rotate(-28deg) translate3d(-260px, 0, 0); } 100% { opacity: 0; } }
-body[data-night="false"]::before, body[data-playing="false"]::before, body[data-visible="false"]::before, body[data-weather="rain"]::before, body[data-weather="snow"]::before, body[data-weather="storm"]::before, .hero[data-night="false"]::before, .hero[data-playing="false"]::before, .hero[data-visible="false"]::before, body[data-weather="rain"] .hero::before, body[data-weather="snow"] .hero::before, body[data-weather="storm"] .hero::before { animation-play-state: paused; }
+body[data-night="false"]::before, body[data-weather="rain"]::before, body[data-weather="snow"]::before, body[data-weather="storm"]::before, .hero[data-night="false"]::before, .hero[data-visible="false"]::before, body[data-weather="rain"] .hero::before, body[data-weather="snow"] .hero::before, body[data-weather="storm"] .hero::before { animation-play-state: paused; }
 .hero[data-night="false"] .night-sky, body[data-weather="rain"] .night-sky, body[data-weather="snow"] .night-sky, body[data-weather="storm"] .night-sky { display: none; }
-.hero[data-playing="false"] .night-sky *, .hero[data-playing="false"] .night-sky::after, .hero[data-visible="false"] .night-sky *, .hero[data-visible="false"] .night-sky::after { animation-play-state: paused; }
+.hero[data-visible="false"] .night-sky *, .hero[data-visible="false"] .night-sky::after { animation-play-state: paused; }
 @media (min-width: 701px) and (max-width: 1319px) {
     .hero .hero-copy.container { padding-bottom: 64px; }
     .preview { max-width: 820px; }
@@ -162,7 +163,7 @@ h1 { font-size: clamp(40px, 3.3vw, 54px); line-height: 1.02; letter-spacing: -.0
 .device-frame { position: absolute; inset: 0; z-index: 2; display: block; width: 100%; height: 100%; pointer-events: none; }
 .scene { position: absolute; z-index: 1; overflow: hidden; background-color: var(--surface); background-size: cover; background-position: 64% 25%; }
 .desktop-device .scene { top: 3.06%; left: 2.55%; width: 94.9%; height: 63.2%; }
-.laptop-device .scene { top: 5.24%; left: 9.37%; width: 81.27%; height: 83.11%; border-radius: 1% 1% 0 0; }
+.laptop-device .scene { top: 2.83%; left: 9.37%; width: 81.27%; height: 85.54%; border-radius: 1% 1% 0 0; }
 .scene::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 500ms ease; }
 .scene[data-weather="rain"]::before { background: linear-gradient(180deg, #16334c31, #1230470c 60%); opacity: 1; }
 .scene[data-weather="snow"]::before { background: linear-gradient(180deg, #d9eaf030, #b9dce611 65%); opacity: 1; }
@@ -212,9 +213,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { outline: 3px solid var(--i
 .section { position: relative; padding-block: 112px; }
 .section > * { position: relative; z-index: 2; }
 main { position: relative; isolation: isolate; }
-:root { --glass-fill: color-mix(in srgb, var(--control) 77%, transparent); --glass-edge: #ffffffc9; --glass-shadow: #19374b18; }
-html[data-day-period="night"], html[data-day-period="dawn"], html[data-day-period="twilight"] { --glass-fill: color-mix(in srgb, var(--control) 73%, transparent); --glass-edge: #ffffff30; --glass-shadow: #020b1f50; }
-main > :not(.hero) { --ink: #203f50; --muted: #4a6270; --accent: #285d79; --control: #ffffff; --selected: #fff0d5; --surface: #edf3f5; --glass-fill: #ffffffa8; --glass-edge: #ffffffef; --glass-shadow: #44637b20; color: var(--ink); }
+:root { --glass-fill: color-mix(in srgb, var(--control) 77%, transparent); --glass-edge: color-mix(in srgb, var(--ink) 12%, transparent); --glass-shadow: #020b1f32; }
 .section-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
 h2 { font-size: clamp(38px, 4vw, 54px); line-height: 1.08; letter-spacing: -.045em; font-weight: 650; }
 .section-heading > p { color: var(--muted); font-size: 19px; line-height: 1.6; text-wrap: balance; }
@@ -269,6 +268,7 @@ h3 { font-size: 21px; letter-spacing: -.025em; font-weight: 650; line-height: 1.
 .maker-project-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
 .maker-project-grid a { position: relative; display: flex; flex-direction: column; gap: 7px; min-height: 120px; padding: 22px 24px; border-radius: 18px; background: var(--glass-fill); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 10px 26px var(--glass-shadow); text-decoration: none; transition: transform 180ms ease, box-shadow 180ms ease; }
 .maker-project-grid a:hover { transform: translateY(-3px); box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent), 0 16px 32px var(--glass-shadow); }
+.maker-project-grid a:active { transform: translateY(-1px) scale(.96); }
 .maker-project-grid strong { padding-right: 22px; font-size: 19px; line-height: 1.3; }
 .maker-project-grid a span:not([aria-hidden]) { color: var(--muted); font-size: 14px; line-height: 1.5; }
 .maker-project-grid a span[aria-hidden] { position: absolute; top: 20px; right: 22px; color: var(--accent); }
@@ -279,12 +279,14 @@ h3 { font-size: 21px; letter-spacing: -.025em; font-weight: 650; line-height: 1.
 .faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 62px; padding: 16px 22px; cursor: pointer; list-style: none; font-size: 17px; font-weight: 550; line-height: 1.5; }
 .faq-list summary::-webkit-details-marker { display: none; }
 .faq-list summary > span { color: var(--muted); font-size: 25px; font-weight: 400; }
+.faq-list summary > span { transition: transform 240ms cubic-bezier(.2, 0, 0, 1); }
 .faq-list details[open] summary > span { transform: rotate(45deg); }
 .faq-list details > div { padding: 0 52px 24px 22px; font-size: 16px; line-height: 1.75; color: var(--muted); }
 .faq-list details > div p + p { margin-top: 18px; }
 .site-footer { position: relative; overflow: hidden; isolation: isolate; margin: 24px 12px 12px; border-radius: 32px; color: #f4f8fc; background: #162b49; box-shadow: inset 0 1px #ffffff5c, 0 0 0 1px #ffffff36, 0 22px 60px #10263b30; }
 .footer-art { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse 55% 85% at -8% 110%, #4c7495a6, transparent 78%), radial-gradient(ellipse 65% 82% at 105% -25%, #3e5577ad, transparent 78%), linear-gradient(125deg, #1a304d 4%, #13223d 72%, #172c4b); }
-.footer-art::before { content: ""; position: absolute; inset: 0; opacity: .28; background: radial-gradient(circle at 14% 18%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 36% 8%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 84% 22%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 66% 16%, #fff 0 1px, transparent 1.5px), repeating-radial-gradient(ellipse 510px 260px at 83% 111%, transparent 0 34px, #ffffff19 35px, transparent 36px 58px); }
+.footer-art::before { content: ""; position: absolute; inset: 0; opacity: .28; background: radial-gradient(circle at 14% 18%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 36% 8%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 84% 22%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 66% 16%, #fff 0 1px, transparent 1.5px), repeating-radial-gradient(ellipse 510px 260px at 83% 111%, transparent 0 34px, #ffffff19 35px, transparent 36px 58px); animation: footer-stars 7s ease-in-out infinite alternate; }
+@keyframes footer-stars { from { opacity: .18; } to { opacity: .4; } }
 .footer-horizon { position: absolute; inset: auto -8% -135px; height: 220px; transform: rotate(-3deg); border-top: 1px solid #ffffff32; background: linear-gradient(180deg, #203958a8, #10233e); box-shadow: 0 -30px 100px #f8b59819; }
 .footer-inner { position: relative; z-index: 2; }
 .footer-main { display: grid; grid-template-columns: 1.15fr 1fr; gap: 100px; padding: 72px 0 94px; }
