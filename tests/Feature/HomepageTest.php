@@ -133,11 +133,15 @@ class HomepageTest extends TestCase
         $this->assertFileExists(public_path('favicon.ico'));
         $this->assertFileExists(public_path('icon-maskable-512.png'));
         $this->assertFileExists(public_path('daydreaming-social.jpg'));
+        $this->assertFileExists(public_path('imac-frame.webp'));
+        $this->assertFileExists(public_path('macbook-pro-frame.webp'));
         $response->assertSee('max="24" step="any"', false)
-            ->assertSee('data-picture-choice="yosemite" aria-pressed="true"', false)
-            ->assertSee('data-picture-choice="bridge" aria-pressed="false"', false)
-            ->assertSee('data-picture="yosemite"', false)
+            ->assertSee('id="scene" data-weather="clear" data-picture="yosemite"', false)
+            ->assertSee('id="bridge-scene" data-weather="clear" data-picture="bridge"', false)
+            ->assertSee('aria-controls="scene bridge-scene"', false)
             ->assertSee('examples/yosemite-clear-day-1280.webp', false)
+            ->assertSee('examples/bridge-noon-1280.webp', false)
+            ->assertDontSee('data-picture-choice=', false)
             ->assertDontSee('original-photo', false)
             ->assertDontSee('id="scene-weather"', false)
             ->assertDontSee('id="wild-scrubber"', false)

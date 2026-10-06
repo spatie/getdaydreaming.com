@@ -11,7 +11,7 @@ function randomGenerator(seed) {
 
 function fitCanvas(canvas) {
     const { width, height } = canvas.getBoundingClientRect();
-    const ratio = Math.min(window.devicePixelRatio || 1, canvas.id === 'weather-scene-canvas' ? 1.25 : 1);
+    const ratio = Math.min(window.devicePixelRatio || 1, canvas.classList.contains('weather-scene-canvas') ? 1.25 : 1);
     const pixelWidth = Math.max(1, Math.round(width * ratio));
     const pixelHeight = Math.max(1, Math.round(height * ratio));
 
@@ -456,26 +456,32 @@ function drawLightning(context, width, height, seed, opacity, scene) {
     context.restore();
 }
 
-export function createWeatherAtmosphere(hero, scene) {
+export function createWeatherAtmosphere(hero, scenes) {
     const skyCanvas = document.getElementById('weather-sky-canvas');
-    const sceneCanvas = document.getElementById('weather-scene-canvas');
+    const photos = scenes.map((scene, index) => ({
+        scene,
+        canvas: scene.querySelector('.weather-scene-canvas'),
+        index,
+        surface: null,
+        fog: null,
+        droplets: [],
+        left: 0,
+        top: 0,
+    }));
     const pageCanvas = document.getElementById('weather-page-canvas');
 
-    if (!skyCanvas || !sceneCanvas || !pageCanvas) {
-        return { setWeather() {} };
+    if (!skyCanvas || !pageCanvas || photos.some(photo => !photo.canvas)) {
+        return { setWeather() {}, stop() {} };
     }
 
     let weather = 'clear';
     let sky;
-    let photo;
     let page;
     let skyClouds;
-    let sceneFog;
     let pageFog;
     const snowGlow = createSnowGlow();
     let pageParticles = [];
     let pageWindTrails = [];
-    let droplets = [];
     let frame;
     let lastFrame = 0;
     let elapsed = 0;
@@ -488,8 +494,6 @@ export function createWeatherAtmosphere(hero, scene) {
     let previewUntil = 0;
     let heroTop = 0;
     let heroBottom = 0;
-    let sceneLeft = 0;
-    let sceneTop = 0;
     const staticMode = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
         || navigator.connection?.saveData === true;
     const heroVisible = () => heroBottom > 0 && heroTop < window.innerHeight
@@ -499,11 +503,13 @@ export function createWeatherAtmosphere(hero, scene) {
 
     function measureGeometry() {
         const heroBounds = hero.getBoundingClientRect();
-        const sceneBounds = scene.getBoundingClientRect();
         heroTop = heroBounds.top;
         heroBottom = heroBounds.bottom;
-        sceneLeft = sceneBounds.left;
-        sceneTop = sceneBounds.top;
+        photos.forEach(photo => {
+            const bounds = photo.scene.getBoundingClientRect();
+            photo.left = bounds.left;
+            photo.top = bounds.top;
+        });
     }
 
     function setFlash(value) {
@@ -534,31 +540,36 @@ export function createWeatherAtmosphere(hero, scene) {
     function resize() {
         measureGeometry();
         sky = fitCanvas(skyCanvas);
-        photo = fitCanvas(sceneCanvas);
+        photos.forEach(photo => { photo.surface = fitCanvas(photo.canvas); });
         page = fitCanvas(pageCanvas);
         const random = randomGenerator(92673 + weather.length * 413);
         pageParticles = createParticles(page.width, page.height, weather, random);
         pageWindTrails = wetWeather.has(weather)
             ? createWindTrails(page.width, page.height, random, weather === 'storm') : [];
-        droplets = createDroplets(photo.width, photo.height, random);
+        photos.forEach(photo => {
+            photo.droplets = createDroplets(photo.surface.width, photo.surface.height, random);
+            photo.fog = weather === 'fog'
+                ? createCloudField(photo.surface.width, photo.surface.height, 'fog', 714 + photo.index * 103) : null;
+        });
         skyClouds = weather !== 'clear' ? createCloudField(sky.width, sky.height, weather, 413) : null;
-        sceneFog = weather === 'fog' ? createCloudField(photo.width, photo.height, 'fog', 714) : null;
         pageFog = weather === 'fog' ? createCloudField(page.width, page.height, 'fog', 817) : null;
         draw();
     }
 
     function draw() {
-        if (!sky || !photo || !page) {
+        if (!sky || !photos.every(photo => photo.surface) || !page) {
             return;
         }
 
         const { context: skyContext, width: skyWidth, height: skyHeight } = sky;
-        const { context: sceneContext, width: sceneWidth, height: sceneHeight } = photo;
         const { context: pageContext, width: pageWidth, height: pageHeight } = page;
         const showHero = heroVisible();
         if (showHero || weather === 'clear') {
             skyContext.clearRect(0, 0, skyWidth, skyHeight);
-            sceneContext.clearRect(0, 0, sceneWidth, sceneHeight);
+            photos.forEach(photo => {
+                const { context, width, height } = photo.surface;
+                context.clearRect(0, 0, width, height);
+            });
         }
         pageContext.clearRect(0, 0, pageWidth, pageHeight);
 
@@ -593,25 +604,28 @@ export function createWeatherAtmosphere(hero, scene) {
 
         drawCloudField(skyContext, skyClouds, elapsed);
 
-        if (weather === 'fog') {
-            drawCloudField(sceneContext, sceneFog, elapsed);
-        } else if (weather === 'snow') {
-            sceneContext.save();
-            sceneContext.translate(-sceneLeft, -sceneTop);
-            drawSnow(sceneContext, pageParticles, pageWidth, pageHeight, elapsed, snowGlow);
-            sceneContext.restore();
-        } else if (streaks) {
-            sceneContext.save();
-            sceneContext.translate(-sceneLeft, -sceneTop);
-            drawRain(sceneContext, streaks, () => 0, {
-                    left: sceneLeft,
-                    top: sceneTop,
-                    right: sceneLeft + sceneWidth,
-                    bottom: sceneTop + sceneHeight,
+        photos.forEach(photo => {
+            const { context, width, height } = photo.surface;
+            if (weather === 'fog') {
+                drawCloudField(context, photo.fog, elapsed);
+            } else if (weather === 'snow') {
+                context.save();
+                context.translate(-photo.left, -photo.top);
+                drawSnow(context, pageParticles, pageWidth, pageHeight, elapsed, snowGlow);
+                context.restore();
+            } else if (streaks) {
+                context.save();
+                context.translate(-photo.left, -photo.top);
+                drawRain(context, streaks, () => 0, {
+                    left: photo.left,
+                    top: photo.top,
+                    right: photo.left + width,
+                    bottom: photo.top + height,
                 }, true);
-            sceneContext.restore();
-            drawGlassDroplets(sceneContext, droplets, sceneWidth, sceneHeight, elapsed, storm);
-        }
+                context.restore();
+                drawGlassDroplets(context, photo.droplets, width, height, elapsed, storm);
+            }
+        });
 
         let flash = 0;
         if (weather === 'storm' && strikeAt >= 0) {
@@ -619,7 +633,10 @@ export function createWeatherAtmosphere(hero, scene) {
             flash = age < .09 ? 1 : age > .17 && age < .25 ? .67 : 0;
             if (flash > 0) {
                 drawLightning(skyContext, skyWidth, skyHeight, strikeSeed, flash, false);
-                drawLightning(sceneContext, sceneWidth, sceneHeight, strikeSeed, flash * .65, true);
+                photos.forEach(photo => {
+                    const { context, width, height } = photo.surface;
+                    drawLightning(context, width, height, strikeSeed + photo.index * 79, flash * .65, true);
+                });
             }
         }
         setFlash(flash);
@@ -689,8 +706,9 @@ export function createWeatherAtmosphere(hero, scene) {
     }
     window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', updateMotionPreference);
     navigator.connection?.addEventListener?.('change', updateMotionPreference);
-    new ResizeObserver(resize).observe(hero);
-    new ResizeObserver(resize).observe(scene);
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(hero);
+    photos.forEach(photo => resizeObserver.observe(photo.scene));
     resize();
 
     return {

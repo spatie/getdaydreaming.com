@@ -474,8 +474,8 @@ function createRenderer(image) {
     };
 }
 
-function createDemo({ range, image, area, feedback, framesForSelection, sceneName, onDisplay, onTimeChange, onProgress, onPause }) {
-    const renderer = createRenderer(image);
+function createDemo({ range, images, area, feedback, frameSelections, sceneNames, onDisplay, onTimeChange, onProgress, onPause }) {
+    const renderers = images.map(createRenderer);
     const hero = area.closest('.hero');
     let playing = shouldAutoplay({ reducedMotion: motionPreference.matches, saveData });
     let visible = false;
@@ -497,34 +497,41 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
         onPause?.();
     }
 
-    function prefetch(pair) {
+    function prefetch(pairs) {
         if (saveData) {
             return;
         }
-        const frames = framesForSelection();
-        const key = pair.upper.file;
+        const key = pairs.map(pair => pair.upper.file).join('/');
         if (prefetched === key) {
             return;
         }
         prefetched = key;
-        const index = frames.indexOf(pair.upper);
-        idle(() => [frames[index], frames[(index + 1) % frames.length]].forEach((frame) => loadPhoto(frame, renderer.previewWidth()).catch(() => {})));
+        idle(() => pairs.forEach((pair, selectionIndex) => {
+            const frames = frameSelections[selectionIndex]();
+            const index = frames.indexOf(pair.upper);
+            [frames[index], frames[(index + 1) % frames.length]].forEach(frame => {
+                loadPhoto(frame, renderers[selectionIndex].previewWidth()).catch(() => {});
+            });
+        }));
     }
 
     async function display(hour, { announce = false, user = false, weatherPreview = false, keepTime = false, pauseOnFailure = true } = {}) {
         const currentRequest = ++request;
-        const pair = framePair(framesForSelection(), hour);
-        const pairKey = `${pair.lower.file}/${pair.upper.file}`;
-        requestedPairKey = pairKey;
-        const nearest = pair.weight < .5 ? pair.lower : pair.upper;
-        const description = `${sceneName()}, ${nearest.weather ?? 'sky garden'} example at ${formatExampleTime(hour * 60)}, blended between example photographs`;
+        const pairs = frameSelections.map(selection => framePair(selection(), hour));
+        requestedPairKey = pairs.map(pair => `${pair.lower.file}/${pair.upper.file}`).join('|');
+        const nearest = pairs.map(pair => pair.weight < .5 ? pair.lower : pair.upper);
+        const descriptions = nearest.map((frame, index) =>
+            `${sceneNames[index]}, ${frame.weather ?? 'sky garden'} example at ${formatExampleTime(hour * 60)}, blended between example photographs`);
         try {
-            const renderedPhoto = await renderer.render(pair, description);
-            if (!renderedPhoto || currentRequest !== request) {
+            const renderedPhotos = await Promise.all(pairs.map((pair, index) =>
+                renderers[index].render(pair, descriptions[index])));
+            if (renderedPhotos.some(photo => !photo) || currentRequest !== request) {
                 return;
             }
             if (playing && !user && !keepTime) {
-                renderer.setBlendWeight(framePair(framesForSelection(), Number(range.value)));
+                renderers.forEach((renderer, index) => {
+                    renderer.setBlendWeight(framePair(frameSelections[index](), Number(range.value)));
+                });
             }
             ready = true;
             displayedHour = hour;
@@ -532,12 +539,12 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
                 range.value = hour;
             }
             feedback.hidden = true;
-            onDisplay(playing ? Number(range.value) : hour, nearest, announce, renderedPhoto, weatherPreview);
+            onDisplay(playing ? Number(range.value) : hour, nearest, announce, renderedPhotos[0], weatherPreview);
             if (!playing || user) {
-                renderer.upgrade(pair, description);
+                renderers.forEach((renderer, index) => renderer.upgrade(pairs[index], descriptions[index]));
             }
             if (visible) {
-                prefetch(pair);
+                prefetch(pairs);
             }
             return true;
         } catch {
@@ -622,9 +629,9 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
                 lastProgressUpdate = now;
             }
             if (renderingHolds === 0) {
-                const pair = framePair(framesForSelection(), hour);
-                renderer.setBlendWeight(pair);
-                const pairKey = `${pair.lower.file}/${pair.upper.file}`;
+                const pairs = frameSelections.map(selection => framePair(selection(), hour));
+                renderers.forEach((renderer, index) => renderer.setBlendWeight(pairs[index]));
+                const pairKey = pairs.map(pair => `${pair.lower.file}/${pair.upper.file}`).join('|');
                 if (pairKey !== requestedPairKey) {
                     display(hour);
                 }
@@ -647,15 +654,13 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
 }
 
 const scene = document.getElementById('scene');
+const bridgeScene = document.getElementById('bridge-scene');
 const scrubber = document.getElementById('day-scrubber');
 const frameData = document.getElementById('photo-frames');
-if (scene && scrubber && frameData) {
-    const atmosphere = createWeatherAtmosphere(heroElement, scene);
+if (scene && bridgeScene && scrubber && frameData) {
+    const atmosphere = createWeatherAtmosphere(heroElement, [scene, bridgeScene]);
     const photoSets = JSON.parse(frameData.textContent);
-    const pictureButtons = [...document.querySelectorAll('[data-picture-choice]')];
     const weatherButtons = [...document.querySelectorAll('[data-weather-choice]')];
-    let picture = 'yosemite';
-    let displayedPicture = 'yosemite';
     let weather = 'clear';
     let displayedWeather = 'clear';
 
@@ -670,12 +675,9 @@ if (scene && scrubber && frameData) {
         return { time, label };
     }
 
-    function selectPicture(nextPicture) {
-        pictureButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.pictureChoice === nextPicture)));
-    }
-
     function presentWeather(nextWeather, { preview = false } = {}) {
         scene.dataset.weather = nextWeather;
+        bridgeScene.dataset.weather = nextWeather;
         document.body.dataset.weather = nextWeather;
         weatherButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.weatherChoice === nextWeather)));
         updateTime(Number(scrubber.value));
@@ -686,49 +688,30 @@ if (scene && scrubber && frameData) {
 
     const demo = createDemo({
         range: scrubber,
-        image: document.getElementById('scene-image'),
-        area: scene,
+        images: [document.getElementById('scene-image'), document.getElementById('bridge-image')],
+        area: document.getElementById('preview'),
         feedback: document.getElementById('scene-feedback'),
-        framesForSelection: () => photoSets[picture].filter(frame => frame.weather === weather),
-        sceneName: () => picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley',
+        frameSelections: [
+            () => photoSets.yosemite.filter(frame => frame.weather === weather),
+            () => photoSets.bridge.filter(frame => frame.weather === weather),
+        ],
+        sceneNames: ['Yosemite Valley', 'Golden Gate Bridge'],
         onTimeChange: applySkyTheme,
         onProgress: updateTime,
         onPause: atmosphere.stop,
-        onDisplay(hour, frame, announce, photo, weatherPreview) {
-            applyPhotoTone(photo, frame);
+        onDisplay(hour, frames, announce, photo, weatherPreview) {
+            applyPhotoTone(photo, frames[0]);
             displayedWeather = weather;
-            displayedPicture = picture;
             if (document.body.dataset.weather !== weather) {
                 presentWeather(weather, { preview: weatherPreview });
             }
             const { time, label } = updateTime(hour);
-            scene.dataset.frame = frame.key;
-            scene.dataset.picture = picture;
-            selectPicture(picture);
+            scene.dataset.frame = frames[0].key;
+            bridgeScene.dataset.frame = frames[1].key;
             if (announce) {
-                const subject = picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley';
-                document.getElementById('scene-announcement').textContent = `${subject}, ${label.toLowerCase()} at ${time}.`;
+                document.getElementById('scene-announcement').textContent = `Yosemite Valley and Golden Gate Bridge, ${label.toLowerCase()} at ${time}.`;
             }
         },
-    });
-    pictureButtons.forEach(button => {
-        button.addEventListener('click', async () => {
-            if (button.dataset.pictureChoice === picture) {
-                return;
-            }
-            demo.holdRendering();
-            picture = button.dataset.pictureChoice;
-            selectPicture(picture);
-            try {
-                const result = await demo.display(Number(scrubber.value), { announce: true, keepTime: true, pauseOnFailure: false });
-                if (result === 'failed' && picture === button.dataset.pictureChoice) {
-                    picture = displayedPicture;
-                    selectPicture(picture);
-                }
-            } finally {
-                demo.releaseRendering();
-            }
-        });
     });
     weatherButtons.forEach((button) => {
         button.addEventListener('click', async () => {
