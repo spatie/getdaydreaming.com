@@ -1,5 +1,5 @@
 const palettes = [
-    { hour: 0, background: '#070d1c', surface: '#111f36', ink: '#f2f5f8', muted: '#bdccdc', line: '#40536c', accent: '#a9d7ee', privacy: '#102332', control: '#16243a', selected: '#293c56', sky: '#030916', glow: '#213456', stars: 1 },
+    { hour: 0, background: '#050a17', surface: '#0d1b31', ink: '#f2f5f8', muted: '#bdccdc', line: '#40536c', accent: '#a9d7ee', privacy: '#102332', control: '#14243b', selected: '#293c56', sky: '#020610', glow: '#182948', stars: 1 },
     { hour: 4, background: '#0b1730', surface: '#1c2d49', ink: '#f2f5f8', muted: '#c4cedb', line: '#52647b', accent: '#bfdbec', privacy: '#18313e', control: '#21324d', selected: '#384e68', sky: '#071126', glow: '#344a76', stars: .88 },
     { hour: 5.25, background: '#0b1730', surface: '#1c2d49', ink: '#f2f5f8', muted: '#c4cedb', line: '#52647b', accent: '#bfdbec', privacy: '#18313e', control: '#21324d', selected: '#384e68', sky: '#071126', glow: '#344a76', stars: .88 },
     { hour: 5.75, background: '#f4d1c4', surface: '#f2dbcf', ink: '#26374c', muted: '#42526a', line: '#8d8ca0', accent: '#305e7a', privacy: '#e1d5cb', control: '#f9e2d4', selected: '#ffe3c4', sky: '#e7adac', glow: '#ffd8a7', stars: .04 },
@@ -13,7 +13,7 @@ const palettes = [
     { hour: 19.75, background: '#22365b', surface: '#263d5c', ink: '#f1f3f5', muted: '#d1d8e3', line: '#74809a', accent: '#c3e3f2', privacy: '#253e4e', control: '#2a3f60', selected: '#3a5472', sky: '#182a52', glow: '#8c6a88', stars: .6 },
     { hour: 20, background: '#111f3d', surface: '#1d3050', ink: '#f1f3f5', muted: '#d1d8e3', line: '#74809a', accent: '#c3e3f2', privacy: '#1a3242', control: '#203452', selected: '#334d6c', sky: '#0a1832', glow: '#455681', stars: .75 },
     { hour: 22, background: '#091329', surface: '#15243f', ink: '#f2f5f8', muted: '#c0cddd', line: '#435571', accent: '#a9d7ee', privacy: '#11283a', control: '#192941', selected: '#2d425c', sky: '#050d20', glow: '#2c416b', stars: .93 },
-    { hour: 24, background: '#070d1c', surface: '#111f36', ink: '#f2f5f8', muted: '#bdccdc', line: '#40536c', accent: '#a9d7ee', privacy: '#102332', control: '#16243a', selected: '#293c56', sky: '#030916', glow: '#213456', stars: 1 },
+    { hour: 24, background: '#050a17', surface: '#0d1b31', ink: '#f2f5f8', muted: '#bdccdc', line: '#40536c', accent: '#a9d7ee', privacy: '#102332', control: '#14243b', selected: '#293c56', sky: '#020610', glow: '#182948', stars: 1 },
 ];
 
 function mixColor(first, second, weight) {
