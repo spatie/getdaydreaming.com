@@ -32,6 +32,10 @@ class HomepageTest extends TestCase
             ->assertSeeText('fixed weather condition in Customize')
             ->assertSeeText('Not created by the Daydreaming app')
             ->assertSeeText('App design preview. Example wallpaper edited for this website')
+            ->assertSee('favicon.svg')
+            ->assertSee('site.webmanifest')
+            ->assertSee('apple-touch-icon.png')
+            ->assertSee('daydreaming-social.jpg')
             ->assertDontSee('Download')
             ->assertDontSee('$', false)
             ->assertDontSee('Buy now')
@@ -73,7 +77,27 @@ class HomepageTest extends TestCase
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-1280.avif'));
             $this->assertFileExists(public_path('examples/'.$frame['file'].'-1280.webp'));
         }
+        $yosemiteFrames = $response->viewData('yosemiteFrames');
+        $this->assertCount(20, $yosemiteFrames);
+        $this->assertCount(20, array_unique(array_column($yosemiteFrames, 'file')));
+        foreach (['clear', 'rain', 'snow', 'fog', 'storm'] as $weather) {
+            $this->assertCount(4, array_filter($yosemiteFrames, fn (array $frame): bool => $frame['weather'] === $weather));
+        }
+        foreach ($yosemiteFrames as $frame) {
+            foreach ([640, 960, 1280, 1536] as $width) {
+                $this->assertFileExists(public_path('examples/'.$frame['file'].'-'.$width.'.avif'));
+                $this->assertFileExists(public_path('examples/'.$frame['file'].'-'.$width.'.webp'));
+            }
+            $this->assertLessThan(50000, filesize(public_path('examples/'.$frame['file'].'-640.avif')));
+        }
+        $this->assertFileExists(public_path('examples/yosemite-original-320.webp'));
+        $this->assertFileExists(public_path('examples/yosemite-original-320.avif'));
+        $this->assertFileExists(public_path('favicon.ico'));
+        $this->assertFileExists(public_path('icon-maskable-512.png'));
+        $this->assertFileExists(public_path('daydreaming-social.jpg'));
         $response->assertSee('max="24" step="any"', false)
+            ->assertSee('data-picture-choice="bridge"', false)
+            ->assertSee('data-picture-choice="yosemite"', false)
             ->assertSee('id="wild-scrubber"', false)
             ->assertSee('aria-label="Pause the day"', false)
             ->assertSee('aria-label="Pause the sky garden"', false)

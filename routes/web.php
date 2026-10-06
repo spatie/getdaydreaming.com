@@ -47,6 +47,34 @@ Route::view('/', 'welcome', [
             }, range(0, 3));
         }, ['rain', 'snow', 'fog', 'storm'])),
     ],
+    'yosemiteFrames' => [
+        ...array_map(fn (array $moment): array => [
+            'key' => 'yosemite-clear-'.$moment['name'],
+            'file' => 'yosemite-clear-'.$moment['name'],
+            'minutes' => $moment['hour'] * 60,
+            'weather' => 'clear',
+            'label' => 'Clear '.$moment['name'],
+            'alt' => 'Yosemite Valley under clear skies at '.$moment['hour'].':00, AI-edited example',
+        ], [
+            ['name' => 'night', 'hour' => 0],
+            ['name' => 'dawn', 'hour' => 6],
+            ['name' => 'day', 'hour' => 12],
+            ['name' => 'evening', 'hour' => 19],
+        ]),
+        ...array_merge(...array_map(fn (string $weather): array => array_map(fn (array $moment): array => [
+            'key' => 'yosemite-'.$weather.'-'.$moment['name'],
+            'file' => 'yosemite-'.$weather.'-'.$moment['name'],
+            'minutes' => $moment['hour'] * 60,
+            'weather' => $weather,
+            'label' => ucfirst($weather).' '.$moment['name'],
+            'alt' => 'Yosemite Valley in '.$weather.' at '.$moment['hour'].':00, AI-edited example',
+        ], [
+            ['name' => 'night', 'hour' => 0],
+            ['name' => 'morning', 'hour' => 7],
+            ['name' => 'day', 'hour' => 12],
+            ['name' => 'evening', 'hour' => 19],
+        ]), ['rain', 'snow', 'fog', 'storm'])),
+    ],
     'wildPrompt' => 'Turn the bay into a sky garden. Keep the bridge. Let koi swim through clouds, with giant water lilies and floating islands.',
     'wildFrames' => array_map(fn (int $hour): array => [
         'hour' => $hour,
@@ -55,6 +83,7 @@ Route::view('/', 'welcome', [
     ], range(0, 23)),
     'photoCredits' => [
         ['picture' => 'Bridge', 'author' => 'Edgar Chaparro', 'source' => 'https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_in_sunlight_(Unsplash).jpg', 'license' => 'CC0', 'licenseUrl' => 'https://creativecommons.org/publicdomain/zero/1.0/', 'downloaded' => '2026-10-05'],
+        ['picture' => 'Yosemite Valley', 'author' => 'NPS Photo / C. Jacoby', 'source' => 'https://www.nps.gov/places/000/tunnel-view.htm', 'license' => 'public domain', 'licenseUrl' => 'https://www.nps.gov/aboutus/disclaimer.htm', 'downloaded' => '2026-10-05'],
     ],
 ], headers: ['Cache-Control' => 'public, max-age=300, s-maxage=3600'])
     ->withoutMiddleware([

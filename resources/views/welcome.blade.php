@@ -8,15 +8,19 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="Daydreaming for Mac">
     <meta property="og:description" content="Keep the scene. Change the atmosphere. Your picture, reimagined for the time and weather on your Mac.">
-    <meta property="og:image" content="{{ asset('daydreaming-social.png') }}">
+    <meta property="og:image" content="{{ asset('daydreaming-social.jpg') }}">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:url" content="{{ route('home') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Daydreaming for Mac, with an AI-edited evening example of the Golden Gate Bridge">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="{{ route('home') }}">
-    <link rel="apple-touch-icon" href="{{ asset('daydreaming-icon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     <title>Daydreaming for Mac | Keep the scene. Change the atmosphere.</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('daydreaming-favicon.png') }}">
     <script>
         document.documentElement.classList.remove('no-js');
@@ -31,7 +35,7 @@
         const hour = new Date().getHours();
         const initialFrame = hour;
         document.documentElement.dataset.initialFrame = initialFrame;
-        document.documentElement.dataset.dayPeriod = hour < 5 || hour >= 21 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'day' : 'golden';
+        document.documentElement.dataset.dayPeriod = hour < 5 || hour >= 21 ? 'night' : hour < 6 ? 'dawn' : hour < 8 ? 'morning' : hour < 18 ? 'day' : hour < 20 ? 'sunset' : 'twilight';
         const initialPhotoFrame = clearPhotoFrames[initialFrame];
         const initialPhoto = initialPhotoFrame.file;
         const photoBase = @json(asset('examples'));
@@ -41,7 +45,7 @@
         preload.as = 'image';
         preload.type = 'image/avif';
         preload.imageSrcset = photoWidths.map(width => photoBase + '/' + initialPhoto + '-' + width + '.avif ' + width + 'w').join(', ');
-        preload.imageSizes = '(max-width: 700px) 100vw, 56vw';
+        preload.imageSizes = '(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px';
         preload.fetchPriority = 'high';
         document.head.append(preload);
     </script>
@@ -76,10 +80,14 @@
                 </div>
 
                 <figure class="preview" id="preview">
+                    <div class="scene-picker" role="group" aria-label="Choose a picture">
+                        <button type="button" data-picture-choice="bridge" aria-pressed="true">Golden Gate Bridge</button>
+                        <button type="button" data-picture-choice="yosemite" aria-pressed="false">Yosemite Valley</button>
+                    </div>
                     <div class="scene" id="scene" data-weather="clear">
                         <picture class="hero-photo">
-                            <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, 56vw">
-                            <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, 56vw">
+                            <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
+                            <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
                             <img id="scene-image" alt="Golden Gate Bridge example" width="1536" height="1024" fetchpriority="high" decoding="async">
                         </picture>
                         <script>
@@ -91,8 +99,8 @@
                         <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-day-1280.webp') }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
                         <div class="original-photo">
                             <picture>
-                                <source type="image/avif" srcset="{{ asset('examples/bridge-day-320.avif') }}">
-                                <img src="{{ asset('examples/bridge-day-320.webp') }}" alt="Original Golden Gate Bridge photograph" width="320" height="213" loading="lazy" fetchpriority="low">
+                                <source id="original-avif" type="image/avif" srcset="{{ asset('examples/bridge-day-320.avif') }}">
+                                <img id="original-image" src="{{ asset('examples/bridge-day-320.webp') }}" alt="Original Golden Gate Bridge photograph" width="320" height="213" loading="lazy" fetchpriority="low">
                             </picture>
                             <span>Original</span>
                         </div>
@@ -341,13 +349,13 @@
             @endforeach
             Example edits made for this website.
         </p>
-        <script id="photo-frames" type="application/json">{!! json_encode($photoFrames, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+        <script id="photo-frames" type="application/json">{!! json_encode(['bridge' => $photoFrames, 'yosemite' => $yosemiteFrames], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
         <script id="photo-base" type="application/json">@json(asset('examples'))</script>
         @foreach(['clear', 'rain', 'snow', 'fog', 'storm', 'night'] as $weather)
             <template data-icon-template="{{ $weather }}">@include('weatherIcon', ['weather' => $weather])</template>
         @endforeach
         <script>
-            const initialIcon = document.querySelector('[data-icon-template="' + (initialPhotoFrame.minutes < 300 || initialPhotoFrame.minutes >= 1260 ? 'night' : 'clear') + '"]');
+            const initialIcon = document.querySelector('[data-icon-template="' + (initialPhotoFrame.minutes < 360 || initialPhotoFrame.minutes >= 1260 ? 'night' : 'clear') + '"]');
             document.getElementById('desktop-weather-icon').replaceChildren(initialIcon.content.cloneNode(true));
         </script>
     </div>
