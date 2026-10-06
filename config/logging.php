@@ -52,6 +52,10 @@ return [
 
     'channels' => [
 
+        'flare' => [
+            'driver' => 'flare',
+        ],
+
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'single')),
