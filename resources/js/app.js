@@ -141,25 +141,28 @@ function createPageThemeSurface(layers) {
 function pageBackground(palette) {
     const weather = document.body.dataset.weather ?? 'clear';
     const weatherTone = {
-        rain: ['#cadde5', 34],
-        snow: ['#e4f2f8', 20],
-        fog: ['#d9e5e8', 32],
-        storm: ['#b9cedb', 48],
+        rain: { day: '#cadde5', night: '#15253d', strength: 34 },
+        snow: { day: '#e4f2f8', night: '#273952', strength: 20 },
+        fog: { day: '#d9e5e8', night: '#203149', strength: 32 },
+        storm: { day: '#b9cedb', night: '#101c32', strength: 48 },
     }[weather];
-    const nightWeight = Math.min(100, Math.round(palette.stars / .85 * 100));
+    const nightWeight = Math.min(100, Math.round(palette.stars * 100));
     const colors = [
-        ['#fff5d7', '#f2f1e7'],
-        ['#ffdcc5', '#e8dfe1'],
-        ['#f7d5db', '#e2ddeb'],
-        ['#dcdaf5', '#d7e0f4'],
-        ['#d2e8f5', '#d4eaf3'],
+        ['#fff5d7', '#060d1e'],
+        ['#ffdcc5', '#0b1730'],
+        ['#f7d5db', '#111d37'],
+        ['#dcdaf5', '#101c34'],
+        ['#d2e8f5', '#0a182e'],
     ].map(([day, night]) => {
         const timeColor = `color-mix(in srgb, ${day} ${100 - nightWeight}%, ${night})`;
         const photoColor = `color-mix(in srgb, ${timeColor} 90%, ${palette.background})`;
 
-        return weatherTone
-            ? `color-mix(in srgb, ${photoColor} ${100 - weatherTone[1]}%, ${weatherTone[0]})`
-            : photoColor;
+        if (!weatherTone) {
+            return photoColor;
+        }
+
+        const tintColor = `color-mix(in srgb, ${weatherTone.day} ${100 - nightWeight}%, ${weatherTone.night})`;
+        return `color-mix(in srgb, ${photoColor} ${100 - weatherTone.strength}%, ${tintColor})`;
     });
 
     return `linear-gradient(170deg, ${colors[0]} 0%, ${colors[1]} 28%, ${colors[2]} 49%, ${colors[3]} 72%, ${colors[4]} 100%)`;
@@ -192,13 +195,20 @@ function renderPageTheme(palette, hour) {
 function weatherColors(palette) {
     const weather = document.body.dataset.weather ?? 'clear';
     const tint = {
-        rain: { sky: '74%, #647b92', background: '86%, #71889e' },
-        snow: { sky: '84%, #bbd3e1', background: '91%, #c6d9e3' },
-        fog: { sky: '70%, #859ca6', background: '83%, #98abb1' },
-        storm: { sky: '55%, #26394f', background: '75%, #5c6d80' },
+        rain: { sky: ['#647b92', '#152945', 74], background: ['#71889e', '#1d304a', 86] },
+        snow: { sky: ['#bbd3e1', '#3d5069', 84], background: ['#c6d9e3', '#344760', 91] },
+        fog: { sky: ['#859ca6', '#263d52', 70], background: ['#98abb1', '#304459', 83] },
+        storm: { sky: ['#26394f', '#0a172b', 55], background: ['#5c6d80', '#192b43', 75] },
     }[weather];
-    const sky = tint ? `color-mix(in srgb, ${palette.sky} ${tint.sky})` : palette.sky;
-    const background = tint ? `color-mix(in srgb, ${palette.background} ${tint.background})` : palette.background;
+    if (!tint) {
+        return { sky: palette.sky, background: palette.background };
+    }
+
+    const nightWeight = Math.min(100, Math.round(palette.stars * 100));
+    const mixWeatherColor = (color, [day, night, baseWeight]) =>
+        `color-mix(in srgb, ${color} ${baseWeight}%, color-mix(in srgb, ${day} ${100 - nightWeight}%, ${night}))`;
+    const sky = mixWeatherColor(palette.sky, tint.sky);
+    const background = mixWeatherColor(palette.background, tint.background);
 
     return { sky, background };
 }
@@ -730,6 +740,58 @@ if (scene && bridgeScene && scrubber && frameData) {
         });
     });
 }
+
+function prepareScrollReveals() {
+    if (motionPreference.matches || saveData || !('IntersectionObserver' in window)
+        || !Element.prototype.animate) {
+        return;
+    }
+
+    const selectors = [
+        '.section-heading > *',
+        '.setup-steps > li',
+        '.prompt-card',
+        '.mac-details-heading',
+        '.product-details > article',
+        '.cost-note',
+        '.privacy-heading > *',
+        '.privacy-details > article',
+        '.makers-copy > *',
+        '.maker-card',
+        '.maker-projects > h3',
+        '.maker-project-grid > a',
+        '.faq-list > details',
+        '.footer-main > *',
+    ];
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const siblingIndex = [...entry.target.parentElement.children].indexOf(entry.target);
+                entry.target.animate([
+                    { opacity: .7, transform: 'translate3d(0, 18px, 0)' },
+                    { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+                ], {
+                    duration: 650,
+                    delay: Math.min(siblingIndex, 3) * 65,
+                    easing: 'cubic-bezier(.2, 0, 0, 1)',
+                    fill: 'backwards',
+                });
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '0px 0px -48px 0px', threshold: .08 });
+
+    document.querySelectorAll(selectors.join(',')).forEach(element => {
+        const bounds = element.getBoundingClientRect();
+        if (bounds.top < window.innerHeight - 32 || bounds.bottom < 0) {
+            return;
+        }
+
+        observer.observe(element);
+    });
+}
+
+prepareScrollReveals();
 
 function animate(now) {
     demos.forEach((demo) => demo.tick(now));
