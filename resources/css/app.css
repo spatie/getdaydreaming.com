@@ -249,19 +249,27 @@ h3 { font-size: 21px; letter-spacing: -.025em; font-weight: 650; line-height: 1.
 .privacy-details article { padding: 18px 24px; border-radius: 18px; background: var(--glass-fill); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 1px color-mix(in srgb, var(--ink) 6%, transparent); }
 .privacy-details h3 { font-size: 19px; }
 .privacy-details p { margin-top: 10px; color: var(--muted); font-size: 16px; line-height: 1.7; }
-.makers { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 96px; }
+.makers { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 44px 72px; }
 .makers h2 { max-width: 510px; }
-.makers-copy > p { max-width: 510px; margin-top: 28px; color: var(--muted); font-size: 18px; line-height: 1.7; }
-.makers-github { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; color: var(--accent); font-size: 15px; font-weight: 650; text-decoration: none; }
-.makers-github:hover { text-decoration: underline; }
-.makers-github span { display: inline-block; transition: transform 180ms ease; }
-.makers-github:hover span { transform: translate(2px, -2px); }
+.makers-copy > p { max-width: 510px; margin-top: 22px; color: var(--muted); font-size: 18px; line-height: 1.7; }
+.makers-copy > p + p { margin-top: 16px; }
 .maker-card { display: flex; align-items: center; gap: 28px; min-width: 0; padding: 32px; border-radius: 26px; background: var(--glass-fill); -webkit-backdrop-filter: blur(18px) saturate(1.15); backdrop-filter: blur(18px) saturate(1.15); box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 18px 42px var(--glass-shadow); }
-.maker-card img { display: block; width: 144px; height: 144px; flex: none; object-fit: cover; border-radius: 50%; outline: 1px solid #0000001a; outline-offset: -1px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--control) 53%, transparent), 0 8px 22px #10263c24; }
+.maker-card > img { display: block; width: 144px; height: 144px; flex: none; object-fit: cover; border-radius: 50%; outline: 1px solid #0000001a; outline-offset: -1px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--control) 53%, transparent), 0 8px 22px #10263c24; }
 .maker-card-copy { min-width: 0; }
 .maker-card-copy h3 { font-size: 23px; }
 .maker-card-copy p { margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.5; }
-.maker-card-copy > a { display: inline-block; margin-top: 18px; color: var(--accent); font-size: 14px; }
+.maker-spatie { display: inline-flex; margin-top: 16px; }
+.maker-spatie img { display: block; width: 76px; height: auto; }
+.maker-links { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 18px; }
+.maker-links a { color: var(--accent); font-size: 14px; }
+.maker-projects { grid-column: 1 / -1; }
+.maker-projects h3 { font-size: 18px; }
+.maker-project-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.maker-project-grid a { position: relative; display: flex; flex-direction: column; gap: 7px; min-height: 120px; padding: 22px 24px; border-radius: 18px; background: var(--glass-fill); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 10px 26px var(--glass-shadow); text-decoration: none; transition: transform 180ms ease, box-shadow 180ms ease; }
+.maker-project-grid a:hover { transform: translateY(-3px); box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent), 0 16px 32px var(--glass-shadow); }
+.maker-project-grid strong { padding-right: 22px; font-size: 19px; line-height: 1.3; }
+.maker-project-grid a span:not([aria-hidden]) { color: var(--muted); font-size: 14px; line-height: 1.5; }
+.maker-project-grid a span[aria-hidden] { position: absolute; top: 20px; right: 22px; color: var(--accent); }
 .faq { display: grid; grid-template-columns: .7fr 1.3fr; gap: 70px; }
 .faq .section-heading { display: block; }
 .faq-list { display: flex; flex-direction: column; gap: 10px; }
@@ -300,7 +308,8 @@ h3 { font-size: 21px; letter-spacing: -.025em; font-weight: 650; line-height: 1.
     .section-heading, .privacy-inner, .faq { gap: 40px; }
     .makers { gap: 40px; }
     .maker-card { gap: 20px; padding: 24px; }
-    .maker-card img { width: 112px; height: 112px; }
+    .maker-card > img { width: 112px; height: 112px; }
+    .maker-project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .setup-steps, .product-details { gap: 16px; }
     .setup-steps li, .product-details > article { padding-inline: 22px; }
     .footer-main { gap: 42px; }
@@ -362,11 +371,13 @@ h3 { font-size: 21px; letter-spacing: -.025em; font-weight: 650; line-height: 1.
     .privacy-inner { grid-template-columns: 1fr; padding-block: 64px; gap: 38px; }
     .privacy h2 { font-size: 38px; }
     .privacy-details { gap: 10px; }
-    .makers { grid-template-columns: 1fr; gap: 38px; }
+    .makers { grid-template-columns: 1fr; gap: 30px; }
     .makers-copy > p { margin-top: 22px; font-size: 17px; }
     .maker-card { gap: 18px; }
-    .maker-card img { width: 96px; height: 96px; }
+    .maker-card > img { width: 96px; height: 96px; }
     .maker-card-copy h3 { font-size: 19px; }
+    .maker-project-grid { grid-template-columns: 1fr; }
+    .maker-project-grid a { min-height: 0; padding: 18px 20px; }
     .faq { grid-template-columns: 1fr; gap: 30px; }
     .faq-list summary { font-size: 16px; }
     .site-footer { margin: 12px 8px 8px; border-radius: 24px; }
@@ -383,7 +394,7 @@ h3 { font-size: 21px; letter-spacing: -.025em; font-weight: 650; line-height: 1.
     .site-header nav { gap: 12px; }
     .hero-requirements { max-width: 260px; }
     .maker-card { gap: 14px; padding: 18px; }
-    .maker-card img { width: 72px; height: 72px; }
+    .maker-card > img { width: 72px; height: 72px; }
     .time-labels span:nth-child(2), .time-labels span:nth-child(4) { display: none; }
 }
 body:is([data-weather="rain"], [data-weather="snow"], [data-weather="fog"], [data-weather="storm"]) :is(.day-controls, .setup-steps li, .prompt-card, .product-details > article, .cost-note, .privacy-details article, .maker-card, .faq-list details) {
