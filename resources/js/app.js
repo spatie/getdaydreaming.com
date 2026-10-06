@@ -146,13 +146,13 @@ function pageBackground(palette) {
         fog: { day: '#d9e5e8', night: '#203149', strength: 32 },
         storm: { day: '#b9cedb', night: '#101c32', strength: 48 },
     }[weather];
-    const nightWeight = Math.min(100, Math.round(palette.stars * 100));
+    const nightWeight = Math.min(100, Math.round(palette.stars * 112));
     const colors = [
-        ['#fff5d7', '#060d1e'],
-        ['#ffdcc5', '#0b1730'],
-        ['#f7d5db', '#111d37'],
-        ['#dcdaf5', '#101c34'],
-        ['#d2e8f5', '#0a182e'],
+        ['#fff5d7', '#040816'],
+        ['#ffdcc5', '#071126'],
+        ['#f7d5db', '#0b1730'],
+        ['#dcdaf5', '#0a162c'],
+        ['#d2e8f5', '#081329'],
     ].map(([day, night]) => {
         const timeColor = `color-mix(in srgb, ${day} ${100 - nightWeight}%, ${night})`;
         const photoColor = `color-mix(in srgb, ${timeColor} 90%, ${palette.background})`;
@@ -388,11 +388,10 @@ function createRenderer(image) {
     let active = 0;
     let pairKey = '';
     let renderedWidth = 0;
-    let captionReadyAt = 0;
     let sequence = 0;
     let upgradeTimer;
 
-    async function render(pair, description, upgrade = false) {
+    async function prepare(pair, description, upgrade = false) {
         const request = ++sequence;
         clearTimeout(upgradeTimer);
         const reducedMotion = motionPreference.matches;
@@ -404,57 +403,64 @@ function createRenderer(image) {
         const width = upgrade ? Math.min(1536, window.innerWidth <= 700 ? 960 : 1536) : previewWidth();
         const photos = await Promise.all([loadPhoto(pair.lower, width), loadPhoto(pair.upper, width)]);
         if (request !== sequence) {
-            return false;
+            return null;
         }
-        if (key === pairKey) {
-            if (upgrade || width > renderedWidth) {
-                banks[active].lower.src = photos[0].src;
-                banks[active].upper.src = photos[1].src;
-                renderedWidth = width;
-            }
-            banks[active].upper.style.opacity = pair.weight;
-        } else {
-            const next = 1 - active;
+        const transition = key !== pairKey;
+        const next = transition ? 1 - active : active;
+        if (transition) {
             const wait = banks[next].availableAt - performance.now();
             if (wait > 0 && !reducedMotion) {
                 await new Promise((resolve) => setTimeout(resolve, wait));
             }
             if (request !== sequence) {
-                return false;
+                return null;
             }
             banks[next].lower.src = photos[0].src;
             banks[next].upper.src = photos[1].src;
             banks[next].upper.style.opacity = pair.weight;
             await Promise.all([banks[next].lower.decode(), banks[next].upper.decode()]);
             if (request !== sequence) {
-                return false;
+                return null;
             }
-            const outgoing = active;
-            banks[outgoing].bank.style.zIndex = '0';
-            banks[next].bank.style.zIndex = '1';
-            banks[outgoing].availableAt = performance.now() + (reducedMotion ? 0 : 400);
-            banks[next].bank.style.opacity = '1';
-            stage.style.opacity = '1';
-            stage.parentElement.classList.add('is-ready');
-            captionReadyAt = performance.now() + (reducedMotion ? 0 : 180);
-            active = next;
-            setTimeout(() => {
-                if (active !== outgoing) {
-                    banks[outgoing].bank.style.opacity = '0';
+        }
+
+        return {
+            transition,
+            isCurrent: () => request === sequence,
+            commit() {
+                if (request !== sequence) {
+                    return false;
                 }
-            }, reducedMotion ? 0 : 400);
-            pairKey = key;
-            renderedWidth = width;
-        }
-        const captionWait = captionReadyAt - performance.now();
-        if (captionWait > 0) {
-            await new Promise((resolve) => setTimeout(resolve, captionWait));
-        }
-        if (request !== sequence) {
-            return false;
-        }
-        image.alt = description;
-        return photos[pair.weight < .5 ? 0 : 1];
+
+                if (transition) {
+                    const outgoing = active;
+                    banks[outgoing].bank.style.zIndex = '0';
+                    banks[next].bank.style.zIndex = '1';
+                    banks[outgoing].availableAt = performance.now() + (reducedMotion ? 0 : 400);
+                    banks[next].bank.style.opacity = '1';
+                    stage.style.opacity = '1';
+                    stage.parentElement.classList.add('is-ready');
+                    active = next;
+                    setTimeout(() => {
+                        if (active !== outgoing) {
+                            banks[outgoing].bank.style.opacity = '0';
+                        }
+                    }, reducedMotion ? 0 : 400);
+                    pairKey = key;
+                    renderedWidth = width;
+                } else {
+                    if (upgrade || width > renderedWidth) {
+                        banks[active].lower.src = photos[0].src;
+                        banks[active].upper.src = photos[1].src;
+                        renderedWidth = width;
+                    }
+                    banks[active].upper.style.opacity = pair.weight;
+                }
+
+                image.alt = description;
+                return photos[pair.weight < .5 ? 0 : 1];
+            },
+        };
     }
 
     function previewWidth() {
@@ -466,7 +472,7 @@ function createRenderer(image) {
     }
 
     return {
-        render,
+        prepare,
         previewWidth,
         setBlendWeight(pair) {
             if (motionPreference.matches) {
@@ -479,7 +485,14 @@ function createRenderer(image) {
         },
         upgrade(pair, description) {
             clearTimeout(upgradeTimer);
-            upgradeTimer = setTimeout(() => render(pair, description, true).catch(() => {}), 450);
+            upgradeTimer = setTimeout(async () => {
+                try {
+                    const prepared = await prepare(pair, description, true);
+                    prepared?.commit();
+                } catch {
+                    // The lower-resolution images remain visible.
+                }
+            }, 450);
         },
     };
 }
@@ -533,9 +546,23 @@ function createDemo({ range, images, area, feedback, frameSelections, sceneNames
         const descriptions = nearest.map((frame, index) =>
             `${sceneNames[index]}, ${frame.weather ?? 'sky garden'} example at ${formatExampleTime(hour * 60)}, blended between example photographs`);
         try {
-            const renderedPhotos = await Promise.all(pairs.map((pair, index) =>
-                renderers[index].render(pair, descriptions[index])));
-            if (renderedPhotos.some(photo => !photo) || currentRequest !== request) {
+            const prepared = await Promise.all(pairs.map((pair, index) =>
+                renderers[index].prepare(pair, descriptions[index])));
+            if (prepared.some(result => !result?.isCurrent()) || currentRequest !== request) {
+                return;
+            }
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            if (prepared.some(result => !result.isCurrent()) || currentRequest !== request) {
+                return;
+            }
+            const renderedPhotos = prepared.map(result => result.commit());
+            if (renderedPhotos.some(photo => !photo)) {
+                return;
+            }
+            if (prepared.some(result => result.transition) && !motionPreference.matches) {
+                await new Promise(resolve => setTimeout(resolve, 180));
+            }
+            if (currentRequest !== request) {
                 return;
             }
             if (playing && !user && !keepTime) {

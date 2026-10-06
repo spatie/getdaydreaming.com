@@ -101,6 +101,7 @@
                     <span class="hero-theme-layer"></span>
                 </div>
                 <div class="night-sky" aria-hidden="true">
+                    <span class="milky-way"></span>
                     <span class="moon" style="--moon-image: url('{{ asset('daydreaming-moon.webp') }}')"></span>
                     <span class="shooting-star shooting-star-one"></span>
                     <span class="shooting-star shooting-star-two"></span>
@@ -166,12 +167,14 @@
                             const photoContainer = document.getElementById(prefix + '-initial-photo');
                             const overlay = document.getElementById(prefix + '-initial-photo-overlay');
                             const neededImages = selection.opacity > 0 ? 2 : 1;
+                            let resolveReady;
+                            const ready = new Promise(resolve => { resolveReady = resolve; });
                             let readyImages = 0;
 
                             function markReady() {
                                 readyImages++;
                                 if (readyImages === neededImages) {
-                                    photoContainer.classList.add('is-ready');
+                                    resolveReady(photoContainer);
                                 }
                             }
 
@@ -195,10 +198,15 @@
                             if (selection.opacity > 0) {
                                 prepareImage(overlayImage, selection.second, document.getElementById(prefix + '-overlay-avif'), document.getElementById(prefix + '-overlay-webp'));
                             }
+                            return ready;
                         }
 
-                        prepareInitialScene('scene', initialYosemite);
-                        prepareInitialScene('bridge', initialBridge);
+                        Promise.all([
+                            prepareInitialScene('scene', initialYosemite),
+                            prepareInitialScene('bridge', initialBridge),
+                        ]).then(containers => requestAnimationFrame(() => {
+                            containers.forEach(container => container.classList.add('is-ready'));
+                        }));
                     </script>
                     <div class="day-controls container">
                         <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
