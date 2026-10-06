@@ -10,58 +10,145 @@ const imageCache = new Map();
 const photoToneCache = new Map();
 const demos = [];
 const heroElement = document.querySelector('.hero');
+const paintHeroSurface = createThemeSurface([...heroElement.querySelectorAll('.hero-theme-layer')]);
+const paintPageSurface = createThemeSurface([...document.querySelectorAll('.page-theme-layer')]);
 const idle = (callback) => window.requestIdleCallback ? window.requestIdleCallback(callback) : setTimeout(callback, 200);
 let themeHour = Number(document.getElementById('day-scrubber')?.value ?? new Date().getHours());
-let themeAnimation;
-let renderedPalette = {};
-function renderSkyTheme(hour) {
-    const palette = skyPalette(hour);
+let renderedPagePalette = {};
+let renderedPagePeriod = '';
+let lastPageUpdate = 0;
+let renderedStars;
+let lastHeroUpdate = 0;
+let pendingHeroPalette;
+let heroUpdateTimer;
+let pageUpdateTimer;
+
+function createThemeSurface(layers) {
+    let active = 0;
+    let rendered = '';
+    let clearTimer;
+
+    return (background) => {
+        if (rendered === background) {
+            return;
+        }
+
+        if (rendered) {
+            const outgoing = layers[active];
+            const incoming = layers[1 - active];
+            clearTimeout(clearTimer);
+            incoming.style.background = background;
+            incoming.style.transition = '';
+            incoming.style.zIndex = '1';
+            outgoing.style.zIndex = '0';
+            incoming.style.opacity = '1';
+            clearTimer = setTimeout(() => {
+                outgoing.style.transition = 'none';
+                outgoing.style.opacity = '0';
+            }, 190);
+            active = 1 - active;
+        } else {
+            layers[active].style.background = background;
+        }
+
+        rendered = background;
+    };
+}
+
+function dayPeriod(hour) {
+    return hour < 5 || hour >= 21 ? 'night' : hour < 6 ? 'dawn' : hour < 8 ? 'morning' : hour < 18 ? 'day' : hour < 20 ? 'sunset' : 'twilight';
+}
+
+function renderPageTheme(palette, hour) {
+    const period = dayPeriod(hour);
+    if (renderedPagePeriod !== period) {
+        document.documentElement.dataset.dayPeriod = period;
+        renderedPagePeriod = period;
+    }
+
     Object.entries(palette).forEach(([name, value]) => {
-        if (renderedPalette[name] !== value) {
+        if (renderedPagePalette[name] !== value) {
             document.documentElement.style.setProperty(`--${name}`, value);
         }
     });
-    if (renderedPalette.background !== palette.background) {
+    if (renderedPagePalette.background !== palette.background) {
         document.querySelector('meta[name="theme-color"]').content = palette.background;
     }
+
+    renderedPagePalette = palette;
+    lastPageUpdate = performance.now();
+}
+
+function weatherColors(palette) {
+    const weather = document.body.dataset.weather ?? 'clear';
+    const tint = {
+        rain: { sky: '74%, #647b92', background: '86%, #71889e' },
+        snow: { sky: '84%, #bbd3e1', background: '91%, #c6d9e3' },
+        fog: { sky: '70%, #859ca6', background: '83%, #98abb1' },
+        storm: { sky: '55%, #26394f', background: '75%, #5c6d80' },
+    }[weather];
+    const sky = tint ? `color-mix(in srgb, ${palette.sky} ${tint.sky})` : palette.sky;
+    const background = tint ? `color-mix(in srgb, ${palette.background} ${tint.background})` : palette.background;
+
+    return { sky, background };
+}
+
+function paintHeroTheme() {
+    heroUpdateTimer = undefined;
+    const palette = pendingHeroPalette;
+    const { sky, background } = weatherColors(palette);
+    const pageColor = `color-mix(in srgb, ${background} 94%, var(--photo-tone))`;
+    const gradient = `radial-gradient(ellipse 45% 32% at 50% 47%, ${palette.glow}, transparent 90%), linear-gradient(180deg, color-mix(in srgb, ${sky} 88%, var(--photo-tone)), ${pageColor} 80%)`;
+    lastHeroUpdate = performance.now();
+    paintHeroSurface(gradient);
+    paintPageSurface(background);
+
+    const stars = Math.round(palette.stars * 20) / 20;
+    if (stars !== renderedStars) {
+        heroElement.style.setProperty('--stars', String(stars));
+        renderedStars = stars;
+    }
+}
+
+function renderHeroTheme(palette) {
+    pendingHeroPalette = palette;
+    if (lastHeroUpdate === 0 || performance.now() - lastHeroUpdate >= 200) {
+        clearTimeout(heroUpdateTimer);
+        paintHeroTheme();
+        return;
+    }
+
+    if (!heroUpdateTimer) {
+        heroUpdateTimer = setTimeout(paintHeroTheme, 200 - (performance.now() - lastHeroUpdate));
+    }
+}
+
+function renderSkyTheme(hour, playback = false) {
+    const palette = skyPalette(hour);
+    renderHeroTheme(palette);
+
     const night = String(palette.stars > .15);
     if (document.body.dataset.night !== night) {
         document.body.dataset.night = night;
         heroElement.dataset.night = night;
     }
-    renderedPalette = palette;
-}
-function applySkyTheme(hour) {
-    cancelAnimationFrame(themeAnimation);
-    let distance = hour - themeHour;
-    if (distance > 12) {
-        distance -= 24;
-    }
-    if (distance < -12) {
-        distance += 24;
-    }
-    if (Math.abs(distance) < .75 || motionPreference.matches) {
-        themeHour = hour;
-        renderSkyTheme(hour);
+
+    if (playback) {
+        if (performance.now() - lastPageUpdate >= 1000 || palette.ink !== renderedPagePalette.ink) {
+            renderPageTheme(palette, hour);
+        }
         return;
     }
-    const startHour = themeHour;
-    const started = performance.now();
-    const duration = Math.min(700, 320 + Math.abs(distance) * 25);
-    function animateTheme(now) {
-        const progress = Math.min(1, (now - started) / duration);
-        const eased = 1 - (1 - progress) ** 3;
-        themeHour = startHour + distance * eased;
-        renderSkyTheme(themeHour);
-        if (progress < 1) {
-            themeAnimation = requestAnimationFrame(animateTheme);
-        } else {
-            themeHour = hour;
-        }
-    }
-    themeAnimation = requestAnimationFrame(animateTheme);
+
+    clearTimeout(pageUpdateTimer);
+    pageUpdateTimer = setTimeout(() => renderPageTheme(skyPalette(themeHour), themeHour), 250);
 }
-renderSkyTheme(themeHour);
+function applySkyTheme(hour, playback = false) {
+    themeHour = hour;
+    renderSkyTheme(hour, playback);
+}
+renderPageTheme(skyPalette(themeHour), themeHour);
+renderSkyTheme(themeHour, true);
 const initialImage = document.getElementById('scene-image');
 let extension = initialImage?.currentSrc.includes('.avif?') ? 'avif' : 'webp';
 
@@ -276,7 +363,7 @@ function createRenderer(image) {
     };
 }
 
-function createDemo({ range, image, area, feedback, framesForSelection, sceneName, onDisplay, onTimeChange, onDayComplete, onPause }) {
+function createDemo({ range, image, area, feedback, framesForSelection, sceneName, onDisplay, onTimeChange, onProgress, onPause }) {
     const renderer = createRenderer(image);
     const hero = area.closest('.hero');
     let playing = shouldAutoplay({ reducedMotion: motionPreference.matches, saveData });
@@ -284,13 +371,13 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
     let ready = false;
     let displayedHour = Number(range.value);
     let lastTick = 0;
-    let lastRender = 0;
+    let lastThemeUpdate = 0;
+    let lastProgressUpdate = 0;
+    let direction = 1;
     let requestedPairKey = '';
-    let displayedPairKey = '';
     let request = 0;
     let prefetched = '';
     let renderingHolds = 0;
-    let pendingDayCompletions = 0;
 
     function pause() {
         playing = false;
@@ -331,12 +418,11 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
             }
             ready = true;
             displayedHour = hour;
-            displayedPairKey = pairKey;
             if (!keepTime && (!playing || user)) {
                 range.value = hour;
             }
             feedback.hidden = true;
-            onDisplay(hour, nearest, announce, renderedPhoto, weatherPreview);
+            onDisplay(playing ? Number(range.value) : hour, nearest, announce, renderedPhoto, weatherPreview);
             if (!playing || user) {
                 renderer.upgrade(pair, description);
             }
@@ -413,23 +499,28 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
             }
             const elapsed = lastTick ? Math.min(now - lastTick, 100) : 0;
             lastTick = now;
-            let hour = Number(range.value) + elapsed / 1250;
+            let hour = Number(range.value) + direction * elapsed / 1800;
             if (hour > 24) {
-                hour = 0;
-                if (renderingHolds > 0) {
-                    pendingDayCompletions++;
-                } else {
-                    onDayComplete?.();
-                }
+                hour = 48 - hour;
+                direction = -1;
+            } else if (hour < 0) {
+                hour = -hour;
+                direction = 1;
             }
             range.value = hour;
-            onTimeChange?.(hour);
+            if (now - lastThemeUpdate >= 200) {
+                onTimeChange?.(hour, true);
+                lastThemeUpdate = now;
+            }
+            if (now - lastProgressUpdate >= 80) {
+                onProgress?.(hour);
+                lastProgressUpdate = now;
+            }
             if (renderingHolds === 0) {
                 const pair = framePair(framesForSelection(), hour);
                 renderer.setBlendWeight(pair);
                 const pairKey = `${pair.lower.file}/${pair.upper.file}`;
-                if (pairKey !== requestedPairKey || (pairKey === displayedPairKey && now - lastRender > 80)) {
-                    lastRender = now;
+                if (pairKey !== requestedPairKey) {
                     display(hour);
                 }
             }
@@ -443,12 +534,8 @@ function createDemo({ range, image, area, feedback, framesForSelection, sceneNam
         },
         releaseRendering() {
             renderingHolds--;
-            if (renderingHolds === 0 && pendingDayCompletions > 0) {
-                for (let completion = 0; completion < pendingDayCompletions; completion++) {
-                    onDayComplete?.();
-                }
-                pendingDayCompletions = 0;
-                display(Number(range.value));
+            if (renderingHolds === 0 && playing) {
+                display(Number(range.value), { keepTime: true });
             }
         },
     };
@@ -466,6 +553,31 @@ if (scene && scrubber && frameData) {
     let displayedPicture = 'yosemite';
     let weather = 'clear';
     let displayedWeather = 'clear';
+
+    function updateTime(hour) {
+        const time = formatExampleTime(hour * 60);
+        const period = hour < 5 || hour >= 21 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+        const adjective = { clear: 'Clear', rain: 'Rainy', snow: 'Snowy', fog: 'Foggy', storm: 'Stormy' }[weather];
+        const label = `${adjective} ${period} example`;
+        document.getElementById('scene-time').textContent = time;
+        scrubber.setAttribute('aria-valuetext', `${time}, ${label.toLowerCase()}`);
+
+        return { time, label };
+    }
+
+    function selectPicture(nextPicture) {
+        pictureButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.pictureChoice === nextPicture)));
+    }
+
+    function presentWeather(nextWeather, { preview = false } = {}) {
+        scene.dataset.weather = nextWeather;
+        document.body.dataset.weather = nextWeather;
+        weatherButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.weatherChoice === nextWeather)));
+        updateTime(Number(scrubber.value));
+        renderHeroTheme(skyPalette(themeHour));
+        atmosphere.setWeather(nextWeather, { preview });
+    }
+
     const demo = createDemo({
         range: scrubber,
         image: document.getElementById('scene-image'),
@@ -474,32 +586,19 @@ if (scene && scrubber && frameData) {
         framesForSelection: () => photoSets[picture].filter(frame => frame.weather === weather),
         sceneName: () => picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley',
         onTimeChange: applySkyTheme,
+        onProgress: updateTime,
         onPause: atmosphere.stop,
-        onDayComplete() {
-            const choices = weatherButtons.map((button) => button.dataset.weatherChoice);
-            const nextWeather = (choices.indexOf(weather) + 1) % choices.length;
-            weather = choices[nextWeather];
-            if (nextWeather === 0) {
-                picture = picture === 'bridge' ? 'yosemite' : 'bridge';
-            }
-        },
         onDisplay(hour, frame, announce, photo, weatherPreview) {
             applyPhotoTone(photo, frame);
-            const time = formatExampleTime(hour * 60);
-            const period = hour < 5 || hour >= 21 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
-            const adjective = { clear: 'Clear', rain: 'Rainy', snow: 'Snowy', fog: 'Foggy', storm: 'Stormy' }[weather];
-            const label = `${adjective} ${period} example`;
             displayedWeather = weather;
             displayedPicture = picture;
-            document.getElementById('scene-time').textContent = time;
-            scrubber.setAttribute('aria-valuetext', `${time}, ${label.toLowerCase()}`);
-            scene.dataset.weather = weather;
-            document.body.dataset.weather = weather;
-            atmosphere.setWeather(weather, { preview: weatherPreview });
+            if (document.body.dataset.weather !== weather) {
+                presentWeather(weather, { preview: weatherPreview });
+            }
+            const { time, label } = updateTime(hour);
             scene.dataset.frame = frame.key;
             scene.dataset.picture = picture;
-            pictureButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.pictureChoice === picture)));
-            weatherButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.weatherChoice === weather)));
+            selectPicture(picture);
             if (announce) {
                 const subject = picture === 'bridge' ? 'Golden Gate Bridge' : 'Yosemite Valley';
                 document.getElementById('scene-announcement').textContent = `${subject}, ${label.toLowerCase()} at ${time}.`;
@@ -513,10 +612,12 @@ if (scene && scrubber && frameData) {
             }
             demo.holdRendering();
             picture = button.dataset.pictureChoice;
+            selectPicture(picture);
             try {
                 const result = await demo.display(Number(scrubber.value), { announce: true, keepTime: true, pauseOnFailure: false });
                 if (result === 'failed' && picture === button.dataset.pictureChoice) {
                     picture = displayedPicture;
+                    selectPicture(picture);
                 }
             } finally {
                 demo.releaseRendering();
@@ -524,13 +625,18 @@ if (scene && scrubber && frameData) {
         });
     });
     weatherButtons.forEach((button) => {
-        button.addEventListener('focus', demo.pause);
         button.addEventListener('click', async () => {
-            demo.pause();
+            demo.holdRendering();
             weather = button.dataset.weatherChoice;
-            const result = await demo.display(Number(scrubber.value), { announce: true, user: true, weatherPreview: true });
-            if (result === 'failed' && weather === button.dataset.weatherChoice) {
-                weather = displayedWeather;
+            presentWeather(weather, { preview: true });
+            try {
+                const result = await demo.display(Number(scrubber.value), { announce: true, keepTime: true, weatherPreview: true, pauseOnFailure: false });
+                if (result === 'failed' && weather === button.dataset.weatherChoice) {
+                    weather = displayedWeather;
+                    presentWeather(weather);
+                }
+            } finally {
+                demo.releaseRendering();
             }
         });
     });

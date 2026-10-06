@@ -11,7 +11,7 @@ function randomGenerator(seed) {
 
 function fitCanvas(canvas) {
     const { width, height } = canvas.getBoundingClientRect();
-    const ratio = Math.min(window.devicePixelRatio || 1, canvas.id === 'weather-sky-canvas' ? 1.25 : 1.5);
+    const ratio = Math.min(window.devicePixelRatio || 1, canvas.id === 'weather-scene-canvas' ? 1.25 : 1);
     const pixelWidth = Math.max(1, Math.round(width * ratio));
     const pixelHeight = Math.max(1, Math.round(height * ratio));
 
@@ -28,8 +28,9 @@ function fitCanvas(canvas) {
 
 function createParticles(width, height, weather, random) {
     const count = wetWeather.has(weather)
-        ? Math.min(250, Math.round(width * .2))
-        : weather === 'snow' ? Math.min(260, Math.round(width * .28)) : 0;
+        ? weather === 'storm' ? Math.min(400, Math.round(width * .3))
+            : Math.min(290, Math.round(width * .23))
+        : weather === 'snow' ? Math.min(340, Math.round(width * .37)) : 0;
 
     if (weather === 'snow') {
         const gusts = Array.from({ length: 5 }, () => ({ x: random() * width, y: random() * height }));
@@ -54,27 +55,35 @@ function createParticles(width, height, weather, random) {
         });
     }
 
-    return Array.from({ length: count }, () => ({
-        x: random() * width,
-        y: random() * height,
-        depth: .18 + random() * .82,
-        phase: random() * Math.PI * 2,
-        size: random(),
-    }));
+    return Array.from({ length: count }, () => {
+        const distance = random();
+        const depth = distance < .68 ? .08 + random() * .3
+            : distance < .94 ? .4 + random() * .32 : .78 + random() * .22;
+
+        return {
+            x: random() * width,
+            y: random() * height,
+            depth,
+            phase: random() * Math.PI * 2,
+            secondPhase: random() * Math.PI * 2,
+            speed: .72 + random() * .6,
+            size: random(),
+        };
+    });
 }
 
 function createDroplets(width, height, random) {
-    const count = Math.min(16, Math.round(width / 68));
+    const count = Math.min(10, Math.round(width / 105));
 
     return Array.from({ length: count }, (_, index) => {
-        const rivulet = index < Math.max(2, Math.round(count * .24));
+        const rivulet = index < Math.max(1, Math.round(count * .15));
 
         return {
             x: random() * width,
             y: random() * height,
             radius: rivulet ? 2.6 + random() * 1.9 : 1 + random() * 1.8,
-            trail: rivulet ? 32 + random() * 62 : 0,
-            speed: rivulet ? 5 + random() * 10 : 2 + random() * 13,
+            trail: rivulet ? 18 + random() * 32 : 0,
+            speed: rivulet ? 4 + random() * 8 : 2 + random() * 13,
             rivulet,
             bend: (random() - .5) * 9,
         };
@@ -96,81 +105,186 @@ function createSnowGlow() {
     return canvas;
 }
 
-function drawCloudBank(context, width, height, weather, elapsed, random) {
-    if (weather === 'clear') {
-        return;
-    }
-
+function createCloudField(width, height, weather, seed) {
     const storm = weather === 'storm';
     const fog = weather === 'fog';
     const layers = fog ? 4 : 3;
     const alpha = storm ? .125 : fog ? .105 : .075;
-    const drift = elapsed * (storm ? 1.5 : .55);
+    const random = randomGenerator(seed);
+    const sprite = document.createElement('canvas');
+    sprite.width = 96;
+    sprite.height = 96;
+    const context = sprite.getContext('2d');
+    const gradient = context.createRadialGradient(48, 48, 0, 48, 48, 48);
+    const color = storm ? '16, 34, 57' : fog ? '222, 238, 240' : '211, 228, 238';
+    gradient.addColorStop(0, `rgba(${color}, ${alpha})`);
+    gradient.addColorStop(.48, `rgba(${color}, ${alpha * .58})`);
+    gradient.addColorStop(1, `rgba(${color}, 0)`);
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 96, 96);
+    const puffs = [];
 
     for (let layer = 0; layer < layers; layer++) {
         const bankY = height * (fog ? .25 + layer * .2 : .12 + layer * .18);
         const bankHeight = height * (fog ? .14 : .15) * (1 + layer * .3);
 
-        for (let puff = 0; puff < 17; puff++) {
-            const x = (puff / 15) * width - width * .1
-                + (random() - .5) * width * .13
-                + Math.sin(drift * .08 + layer) * 28;
-            const y = bankY + (random() - .5) * bankHeight;
-            const radius = width * (.07 + random() * .12);
-            const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
-            const color = storm ? '16, 34, 57' : fog ? '222, 238, 240' : '211, 228, 238';
-            gradient.addColorStop(0, `rgba(${color}, ${alpha * (1 + random() * .5)})`);
-            gradient.addColorStop(.48, `rgba(${color}, ${alpha * .58})`);
-            gradient.addColorStop(1, `rgba(${color}, 0)`);
-            context.fillStyle = gradient;
-            context.save();
-            context.translate(x, y);
-            context.scale(1, .3 + random() * .22);
-            context.translate(-x, -y);
-            context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-            context.restore();
+        for (let puff = 0; puff < 9; puff++) {
+            puffs.push({
+                x: (puff / 7) * width - width * .1 + (random() - .5) * width * .13,
+                y: bankY + (random() - .5) * bankHeight,
+                radius: width * (.07 + random() * .12),
+                stretch: .3 + random() * .22,
+                phase: random() * Math.PI * 2,
+                secondPhase: random() * Math.PI * 2,
+                speed: (storm ? .21 : .12) * (.65 + random() * .9),
+                opacity: .7 + random() * .4,
+            });
         }
     }
+
+    return { sprite, puffs };
 }
 
-function createCloudTexture(width, height, weather, seed) {
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.ceil(width + 100);
-    canvas.height = Math.ceil(height);
-    drawCloudBank(canvas.getContext('2d'), canvas.width, canvas.height, weather, 0, randomGenerator(seed));
-
-    return canvas;
+function drawCloudField(context, field, elapsed, opacity = 1) {
+    field.puffs.forEach((puff) => {
+        const phase = elapsed * puff.speed + puff.phase;
+        const eddy = Math.sin(phase) * puff.radius * .14
+            + Math.sin(phase * 2.3 + puff.secondPhase) * puff.radius * .04;
+        const x = puff.x + eddy;
+        const y = puff.y + Math.cos(phase * .7 + puff.secondPhase) * puff.radius * .035;
+        const radius = puff.radius * (1 + Math.sin(phase * .83) * .085);
+        const stretch = puff.stretch * (1 + Math.sin(phase * 1.31) * .1);
+        context.globalAlpha = opacity * puff.opacity * (1 + Math.sin(phase * 1.17) * .13);
+        context.drawImage(field.sprite, x - radius, y - radius * stretch,
+            radius * 2, radius * stretch * 2);
+    });
+    context.globalAlpha = 1;
 }
 
-function drawRain(context, particles, width, height, elapsed, storm, sectionAt = () => 0, bounds) {
-    context.lineCap = 'round';
-    const wind = storm ? .43 : .2;
+function rainStreaks(particles, width, height, elapsed, storm, gustStrength) {
+    const span = height + 90;
+    const wind = elapsed * (storm ? 92 : 41)
+        + Math.sin(elapsed * .37) * (storm ? 39 : 18)
+        + Math.sin(elapsed * 1.13) * (storm ? 12 : 5)
+        + gustStrength * (storm ? 22 : 0);
 
-    particles.forEach((drop) => {
-        const speed = (storm ? 440 : 305) * (.45 + drop.depth);
-        const y = ((drop.y + elapsed * speed) % (height + 90)) - 45;
-        const x = (drop.x + elapsed * speed * wind) % (width + 45) - 22;
-        const length = 8 + drop.depth * (storm ? 34 : 23);
+    return particles.map((drop) => {
+        const speed = (storm ? 440 : 305) * (.45 + drop.depth) * drop.speed;
+        const travel = drop.y + elapsed * speed;
+        const cycle = Math.floor(travel / span);
+        const y = travel - cycle * span - 45;
+        const gust = Math.sin(elapsed * 1.6 + drop.phase) * (3 + drop.depth * 10)
+            + Math.sin(elapsed * .54 + drop.secondPhase) * (4 + drop.depth * 7);
+        const rebirth = Math.sin(cycle * 2.38 + drop.phase) * width * .42;
+        const x = ((drop.x + wind * (.45 + drop.depth * .9) + gust + rebirth) % (width + 45)
+            + width + 45) % (width + 45) - 22;
+        const length = (3 + drop.depth * (storm ? 26 : 20))
+            * (1 + Math.sin(elapsed * .9 + drop.phase) * .15);
+        const slant = (storm ? .3 : .15) + Math.sin(elapsed * .67 + drop.secondPhase) * .08
+            + gustStrength * (storm ? .13 : 0);
+
+        return { x, y, length, slant, depth: drop.depth, size: drop.size };
+    });
+}
+
+function drawRain(context, streaks, sectionAt = () => 0, bounds, scene = false) {
+    context.lineCap = 'butt';
+
+    streaks.forEach((streak) => {
+        const { x, y, length, slant, depth, size } = streak;
         if (bounds && (y > bounds.bottom || y + length < bounds.top
-            || x < bounds.left - length * wind || x > bounds.right + length * wind)) {
+            || x < bounds.left - length * slant || x > bounds.right + length * slant)) {
             return;
         }
         const section = sectionAt(y);
-        if (drop.size < section * .88) {
+        if (size < section * .88) {
             return;
         }
 
-        const opacity = .1 + drop.depth * .35;
-        const red = Math.round(226 - section * 171);
-        const green = Math.round(244 - section * 143);
-        const blue = Math.round(255 - section * 124);
-        context.strokeStyle = `rgba(${red}, ${green}, ${blue}, ${opacity * (1 - section * .64)})`;
-        context.lineWidth = .55 + drop.depth * 1.25;
+        const opacity = (.055 + depth * .22) * (scene ? 1 : .65) * (1 - section * .75);
+        const red = Math.round(177 - section * 57);
+        const green = Math.round(199 - section * 55);
+        const blue = Math.round(218 - section * 57);
+        context.strokeStyle = `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+        context.lineWidth = .35 + depth * (scene ? .88 : .65);
+        if (scene && depth > .78) {
+            context.shadowColor = 'rgba(182, 205, 224, .22)';
+            context.shadowBlur = 2;
+        }
         context.beginPath();
         context.moveTo(x, y);
-        context.lineTo(x - length * wind, y + length);
+        context.lineTo(x - length * slant, y + length);
+        context.stroke();
+        context.shadowBlur = 0;
+    });
+}
+
+function createWindTrails(width, height, random, storm) {
+    const count = Math.min(storm ? 7 : 6, Math.max(3, Math.round(width / 260)));
+
+    return Array.from({ length: count }, (_, index) => ({
+        x: random() * width,
+        y: random() * height,
+        length: 78 + random() * 72,
+        bend: 6 + random() * 10,
+        speed: 9 + random() * 12,
+        phase: random() * Math.PI * 2,
+        secondPhase: random() * Math.PI * 2,
+        accent: index === 0,
+    }));
+}
+
+function drawWindTrails(context, trails, width, elapsed, storm, sectionAt, gustStrength, dayPeriod) {
+    const warmPeriod = dayPeriod === 'dawn' || dayPeriod === 'sunset' || dayPeriod === 'twilight';
+
+    trails.forEach((trail) => {
+        const cycle = width + trail.length * 2;
+        const x = (trail.x + elapsed * trail.speed) % cycle - trail.length;
+        const y = trail.y + Math.sin(elapsed * .34 + trail.phase) * 10
+            + Math.sin(elapsed * .83 + trail.secondPhase) * 4;
+        const fade = Math.max(0, Math.sin(elapsed * .46 + trail.phase)) ** 2;
+        if (fade < .08) {
+            return;
+        }
+
+        const section = sectionAt(y);
+        const opacity = (storm ? .16 : .12) * fade * (1 - section * .42);
+        const warm = trail.accent && warmPeriod;
+        const violet = trail.accent && !warm;
+        const red = warm ? Math.round(203 - section * 32)
+            : violet ? Math.round(194 - section * 49) : Math.round(192 - section * 83);
+        const green = warm ? Math.round(158 - section * 36)
+            : violet ? Math.round(196 - section * 64) : Math.round(213 - section * 79);
+        const blue = warm ? Math.round(171 - section * 35)
+            : violet ? Math.round(222 - section * 32) : Math.round(231 - section * 69);
+        const curve = trail.bend * (1 + Math.sin(elapsed * .56 + trail.secondPhase) * .4)
+            + gustStrength * 5;
+        const gradient = context.createLinearGradient(x, y, x + trail.length, y);
+        gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, 0)`);
+        gradient.addColorStop(.32, `rgba(${red}, ${green}, ${blue}, ${opacity})`);
+        gradient.addColorStop(.68, `rgba(${red}, ${green}, ${blue}, ${opacity * .75})`);
+        gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, 0)`);
+        context.strokeStyle = gradient;
+        context.lineWidth = storm ? 1.25 : .95;
+        context.lineCap = 'round';
+        context.beginPath();
+        context.moveTo(x, y);
+        context.bezierCurveTo(x + trail.length * .24, y - curve,
+            x + trail.length * .32, y - curve, x + trail.length * .5, y);
+        context.bezierCurveTo(x + trail.length * .7, y + curve,
+            x + trail.length * .82, y + curve * .75,
+            x + trail.length, y - curve * .25);
         context.stroke();
     });
+}
+
+function stormWind(elapsed, strikeAt) {
+    const current = Math.sin(elapsed * .7) * .24 + Math.sin(elapsed * 1.6 + 1.1) * .16;
+    const age = elapsed - strikeAt;
+    const recoil = strikeAt >= 0 && age < 2.5
+        ? Math.sin(age * 8) * Math.exp(-age * 1.3) * .56 : 0;
+
+    return Math.max(-1, Math.min(1, current + recoil));
 }
 
 function drawCrystal(context, x, y, radius, opacity, rotation) {
@@ -247,9 +361,9 @@ function drawGlassDroplets(context, droplets, width, height, elapsed, storm) {
             const top = y - drop.trail;
             const middle = y - drop.trail * .45;
             const gradient = context.createLinearGradient(x - radius, y, x + radius, y);
-            gradient.addColorStop(0, 'rgba(237, 249, 255, .25)');
+            gradient.addColorStop(0, 'rgba(237, 249, 255, .13)');
             gradient.addColorStop(.38, 'rgba(211, 234, 249, .06)');
-            gradient.addColorStop(1, 'rgba(13, 36, 57, .2)');
+            gradient.addColorStop(1, 'rgba(13, 36, 57, .13)');
             context.fillStyle = gradient;
             context.beginPath();
             context.moveTo(x + drop.bend, top);
@@ -271,7 +385,7 @@ function drawGlassDroplets(context, droplets, width, height, elapsed, storm) {
             );
             context.closePath();
             context.fill();
-            context.strokeStyle = 'rgba(241, 252, 255, .31)';
+            context.strokeStyle = 'rgba(241, 252, 255, .13)';
             context.lineWidth = .6;
             context.beginPath();
             context.moveTo(x + drop.bend - .5, top + drop.trail * .18);
@@ -283,9 +397,9 @@ function drawGlassDroplets(context, droplets, width, height, elapsed, storm) {
             context.stroke();
         } else {
             const gradient = context.createLinearGradient(x - radius, y, x + radius, y);
-            gradient.addColorStop(0, 'rgba(240, 251, 255, .32)');
+            gradient.addColorStop(0, 'rgba(240, 251, 255, .18)');
             gradient.addColorStop(.45, 'rgba(214, 237, 249, .04)');
-            gradient.addColorStop(1, 'rgba(19, 42, 61, .17)');
+            gradient.addColorStop(1, 'rgba(19, 42, 61, .12)');
             context.fillStyle = gradient;
             context.beginPath();
             context.ellipse(x, y, radius * .75, radius * 1.15, -.12, 0, Math.PI * 2);
@@ -355,17 +469,17 @@ export function createWeatherAtmosphere(hero, scene) {
     let pageFog;
     const snowGlow = createSnowGlow();
     let pageParticles = [];
+    let pageWindTrails = [];
     let droplets = [];
     let frame;
     let lastFrame = 0;
-    let lastTick = 0;
-    let refreshInterval = 1000 / 60;
-    let ticksSinceRender = 0;
     let elapsed = 0;
     let nextStrike = 9;
     let strikeAt = -1;
     let strikeSeed = 35;
     let renderedFlash = null;
+    let renderedWind = null;
+    let lastWindUpdate = 0;
     let previewUntil = 0;
     let heroTop = 0;
     let heroBottom = 0;
@@ -396,6 +510,22 @@ export function createWeatherAtmosphere(hero, scene) {
         document.body.style.setProperty('--weather-flash', String(value));
     }
 
+    function setWind(value) {
+        if (value !== 0) {
+            const now = performance.now();
+            if (now - lastWindUpdate < 32
+                || (renderedWind !== null && Math.abs(value - renderedWind) < .03)) {
+                return;
+            }
+            lastWindUpdate = now;
+        }
+
+        if (value !== renderedWind) {
+            renderedWind = value;
+            hero.style.setProperty('--weather-wind', value.toFixed(3));
+        }
+    }
+
     function resize() {
         measureGeometry();
         sky = fitCanvas(skyCanvas);
@@ -403,10 +533,12 @@ export function createWeatherAtmosphere(hero, scene) {
         page = fitCanvas(pageCanvas);
         const random = randomGenerator(92673 + weather.length * 413);
         pageParticles = createParticles(page.width, page.height, weather, random);
+        pageWindTrails = wetWeather.has(weather)
+            ? createWindTrails(page.width, page.height, random, weather === 'storm') : [];
         droplets = createDroplets(photo.width, photo.height, random);
-        skyClouds = createCloudTexture(sky.width, sky.height, weather, 413);
-        sceneFog = weather === 'fog' ? createCloudTexture(photo.width, photo.height, 'fog', 714) : null;
-        pageFog = weather === 'fog' ? createCloudTexture(page.width, page.height, 'fog', 817) : null;
+        skyClouds = weather !== 'clear' ? createCloudField(sky.width, sky.height, weather, 413) : null;
+        sceneFog = weather === 'fog' ? createCloudField(photo.width, photo.height, 'fog', 714) : null;
+        pageFog = weather === 'fog' ? createCloudField(page.width, page.height, 'fog', 817) : null;
         draw();
     }
 
@@ -427,20 +559,26 @@ export function createWeatherAtmosphere(hero, scene) {
 
         if (weather === 'clear') {
             setFlash(0);
+            setWind(0);
             return;
         }
 
         const sectionAt = (y) => Math.max(0, Math.min(1, (y - heroBottom + 120) / 240));
 
+        const storm = weather === 'storm';
+        const windStrength = storm && shouldAnimate() ? stormWind(elapsed, strikeAt) : 0;
+        setWind(windStrength);
+        const streaks = wetWeather.has(weather)
+            ? rainStreaks(pageParticles, pageWidth, pageHeight, elapsed, storm, windStrength) : null;
+
         if (weather === 'fog') {
-            pageContext.globalAlpha = .3;
-            pageContext.drawImage(pageFog, Math.sin(elapsed * .045) * 15 - 50, 0);
-            pageContext.globalAlpha = 1;
+            drawCloudField(pageContext, pageFog, elapsed, .3);
         } else if (weather === 'snow') {
             drawSnow(pageContext, pageParticles, pageWidth, pageHeight, elapsed, snowGlow, sectionAt);
-        } else if (wetWeather.has(weather)) {
-            const storm = weather === 'storm';
-            drawRain(pageContext, pageParticles, pageWidth, pageHeight, elapsed, storm, sectionAt);
+        } else if (streaks) {
+            drawRain(pageContext, streaks, sectionAt);
+            drawWindTrails(pageContext, pageWindTrails, pageWidth, elapsed,
+                storm, sectionAt, windStrength, document.documentElement.dataset.dayPeriod);
         }
 
         if (!showHero) {
@@ -448,26 +586,24 @@ export function createWeatherAtmosphere(hero, scene) {
             return;
         }
 
-        skyContext.drawImage(skyClouds, Math.sin(elapsed * .08) * 22 - 50, 0);
+        drawCloudField(skyContext, skyClouds, elapsed);
 
         if (weather === 'fog') {
-            sceneContext.drawImage(sceneFog, Math.sin(elapsed * .065) * 16 - 50, 0);
+            drawCloudField(sceneContext, sceneFog, elapsed);
         } else if (weather === 'snow') {
             sceneContext.save();
             sceneContext.translate(-sceneLeft, -sceneTop);
             drawSnow(sceneContext, pageParticles, pageWidth, pageHeight, elapsed, snowGlow);
             sceneContext.restore();
-        } else if (wetWeather.has(weather)) {
-            const storm = weather === 'storm';
+        } else if (streaks) {
             sceneContext.save();
             sceneContext.translate(-sceneLeft, -sceneTop);
-            drawRain(sceneContext, pageParticles, pageWidth, pageHeight, elapsed, storm,
-                () => 0, {
+            drawRain(sceneContext, streaks, () => 0, {
                     left: sceneLeft,
                     top: sceneTop,
                     right: sceneLeft + sceneWidth,
                     bottom: sceneTop + sceneHeight,
-                });
+                }, true);
             sceneContext.restore();
             drawGlassDroplets(sceneContext, droplets, sceneWidth, sceneHeight, elapsed, storm);
         }
@@ -475,7 +611,7 @@ export function createWeatherAtmosphere(hero, scene) {
         let flash = 0;
         if (weather === 'storm' && strikeAt >= 0) {
             const age = elapsed - strikeAt;
-            flash = age < .085 ? .53 : age > .14 && age < .245 ? .36 : 0;
+            flash = age < .09 ? 1 : age > .17 && age < .25 ? .67 : 0;
             if (flash > 0) {
                 drawLightning(skyContext, skyWidth, skyHeight, strikeSeed, flash, false);
                 drawLightning(sceneContext, sceneWidth, sceneHeight, strikeSeed, flash * .65, true);
@@ -491,22 +627,12 @@ export function createWeatherAtmosphere(hero, scene) {
             return;
         }
 
-        if (lastTick) {
-            const tickInterval = now - lastTick;
-            if (tickInterval < 50) {
-                refreshInterval = refreshInterval * .8 + tickInterval * .2;
-            }
-        }
-        lastTick = now;
-        ticksSinceRender++;
-        const frameStride = Math.max(1, Math.floor((1000 / 60 + .75) / refreshInterval));
-        if (ticksSinceRender < frameStride) {
+        if (lastFrame && now - lastFrame < 10) {
             frame = requestAnimationFrame(tick);
             return;
         }
-        ticksSinceRender = 0;
 
-        elapsed += lastFrame ? Math.min((now - lastFrame) / 1000, .06) : 0;
+        elapsed += lastFrame ? Math.min((now - lastFrame) / 1000, .12) : 0;
         lastFrame = now;
         if (weather === 'storm' && elapsed >= nextStrike) {
             strikeAt = elapsed;
@@ -524,10 +650,9 @@ export function createWeatherAtmosphere(hero, scene) {
             frame = undefined;
         }
         lastFrame = 0;
-        lastTick = 0;
-        ticksSinceRender = 0;
         strikeAt = -1;
         setFlash(0);
+        setWind(0);
         draw();
     }
 

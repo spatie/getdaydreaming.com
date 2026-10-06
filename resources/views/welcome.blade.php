@@ -54,6 +54,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
+    <div class="page-theme" aria-hidden="true">
+        <span class="page-theme-layer"></span>
+        <span class="page-theme-layer"></span>
+    </div>
     <a class="skip-link" href="#main">Skip to content</a>
     <div class="page-shell">
         <canvas id="weather-page-canvas" aria-hidden="true"></canvas>
@@ -71,6 +75,10 @@
 
         <main id="main" tabindex="-1">
             <section class="hero" aria-labelledby="hero-title">
+                <div class="hero-theme" aria-hidden="true">
+                    <span class="hero-theme-layer"></span>
+                    <span class="hero-theme-layer"></span>
+                </div>
                 <div class="night-sky" aria-hidden="true">
                     <span class="moon"></span>
                     <span class="shooting-star shooting-star-one"></span>
@@ -139,7 +147,7 @@
                         <div class="time-selector">
                             <label class="sr-only" for="day-scrubber">Choose an hour of the day</label>
                             <input id="day-scrubber" type="range" min="0" max="24" step="any" value="0" aria-controls="scene">
-                            <div class="time-labels" aria-hidden="true"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>12 AM</span></div>
+                            <div class="time-labels" aria-hidden="true"><span>Night</span><span>Morning</span><span>Afternoon</span><span>Evening</span><span>Night</span></div>
                         </div>
                         <div class="weather-buttons" role="group" aria-label="Choose weather">
                             @foreach(['clear' => 'Clear', 'rain' => 'Rain', 'snow' => 'Snow', 'fog' => 'Fog', 'storm' => 'Storm'] as $weather => $label)
