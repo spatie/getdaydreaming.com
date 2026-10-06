@@ -24,8 +24,10 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('daydreaming-favicon.png') }}">
     <script>
         document.documentElement.classList.remove('no-js');
-        const photoFrames = @json($yosemiteFrames);
-        const clearPhotoFrames = photoFrames.filter(frame => frame.weather === 'clear');
+        const initialPhotoSets = {
+            yosemite: @json($yosemiteFrames),
+            bridge: @json($photoFrames),
+        };
         function formatExampleTime(minutes) {
             const clock = new Date();
             minutes = Math.round(minutes);
@@ -37,28 +39,37 @@
         const initialFrame = hour + now.getMinutes() / 60;
         document.documentElement.dataset.initialFrame = initialFrame;
         document.documentElement.dataset.dayPeriod = hour < 5 || hour >= 21 ? 'night' : hour < 6 ? 'dawn' : hour < 8 ? 'morning' : hour < 18 ? 'day' : hour < 20 ? 'sunset' : 'twilight';
-        const initialLowerFrame = clearPhotoFrames.findLast(frame => frame.minutes <= initialFrame * 60) ?? clearPhotoFrames.at(-1);
-        const initialUpperFrame = clearPhotoFrames.find(frame => frame.minutes > initialFrame * 60) ?? clearPhotoFrames[0];
-        const initialUpperMinutes = initialUpperFrame.minutes > initialLowerFrame.minutes ? initialUpperFrame.minutes : initialUpperFrame.minutes + 1440;
-        const initialWeight = (initialFrame * 60 - initialLowerFrame.minutes) / (initialUpperMinutes - initialLowerFrame.minutes);
-        const initialNearestFrame = initialWeight < .5 ? initialLowerFrame : initialUpperFrame;
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const initialPhotoFrame = reducedMotion ? initialNearestFrame : initialLowerFrame;
-        const initialOverlayFrame = reducedMotion ? initialPhotoFrame : initialUpperFrame;
-        const initialOverlayOpacity = reducedMotion ? 0 : initialWeight;
+        function initialSceneFrames(frames) {
+            const clearFrames = frames.filter(frame => frame.weather === 'clear');
+            const lower = clearFrames.findLast(frame => frame.minutes <= initialFrame * 60) ?? clearFrames.at(-1);
+            const upper = clearFrames.find(frame => frame.minutes > initialFrame * 60) ?? clearFrames[0];
+            const upperMinutes = upper.minutes > lower.minutes ? upper.minutes : upper.minutes + 1440;
+            const weight = (initialFrame * 60 - lower.minutes) / (upperMinutes - lower.minutes);
+            const nearest = weight < .5 ? lower : upper;
+            const first = reducedMotion ? nearest : lower;
+
+            return { first, second: reducedMotion ? first : upper, nearest, opacity: reducedMotion ? 0 : weight };
+        }
+        const initialYosemite = initialSceneFrames(initialPhotoSets.yosemite);
+        const initialBridge = initialSceneFrames(initialPhotoSets.bridge);
         const photoBase = @json(asset('examples'));
         const photoRevision = @json($photoRevision);
         const photoWidths = [640, 960, 1280, 1536];
         const photoSource = (file, width, format) => photoBase + '/' + file + '-' + width + '.' + format + '?v=' + photoRevision;
-        for (const frame of [initialPhotoFrame, ...(initialOverlayOpacity > 0 ? [initialOverlayFrame] : [])]) {
-            const preload = document.createElement('link');
-            preload.rel = 'preload';
-            preload.as = 'image';
-            preload.type = 'image/avif';
-            preload.imageSrcset = photoWidths.map(width => photoSource(frame.file, width, 'avif') + ' ' + width + 'w').join(', ');
-            preload.imageSizes = '(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px';
-            preload.fetchPriority = 'high';
-            document.head.append(preload);
+        for (const [picture, selection] of Object.entries({ yosemite: initialYosemite, bridge: initialBridge })) {
+            for (const frame of [selection.first, ...(selection.opacity > 0 ? [selection.second] : [])]) {
+                const preload = document.createElement('link');
+                preload.rel = 'preload';
+                preload.as = 'image';
+                preload.type = 'image/avif';
+                preload.imageSrcset = photoWidths.map(width => photoSource(frame.file, width, 'avif') + ' ' + width + 'w').join(', ');
+                preload.imageSizes = picture === 'yosemite'
+                    ? '(max-width: 700px) 64vw, (max-width: 1128px) 57vw, 560px'
+                    : '(max-width: 700px) 65vw, (max-width: 1128px) 42vw, 400px';
+                preload.fetchPriority = picture === 'yosemite' ? 'high' : 'low';
+                document.head.append(preload);
+            }
         }
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -105,68 +116,90 @@
                 </div>
 
                 <figure class="preview" id="preview">
-                    <div class="scene-picker" role="group" aria-label="Choose a picture">
-                        <button type="button" data-picture-choice="yosemite" aria-pressed="true">Yosemite Valley</button>
-                        <button type="button" data-picture-choice="bridge" aria-pressed="false">Golden Gate Bridge</button>
-                    </div>
-                    <div class="scene" id="scene" data-weather="clear" data-picture="yosemite">
-                        <div class="initial-photo" id="initial-photo">
-                            <picture class="hero-photo">
-                                <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                                <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                                <img id="scene-image" alt="Yosemite Valley example" width="1536" height="1024" fetchpriority="high" decoding="async">
-                            </picture>
-                            <picture class="hero-photo initial-photo-overlay" id="initial-photo-overlay" aria-hidden="true">
-                                <source id="scene-overlay-avif" type="image/avif" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                                <source id="scene-overlay-webp" type="image/webp" sizes="(max-width: 700px) 100vw, (max-width: 1128px) calc(100vw - 48px), 1080px">
-                                <img id="scene-overlay-image" alt="" width="1536" height="1024" decoding="async">
-                            </picture>
+                    <figcaption class="sr-only">Yosemite Valley and Golden Gate Bridge wallpapers on two Macs, controlled together.</figcaption>
+                    <div class="device-stage">
+                        <div class="desktop-device">
+                            <div class="scene" id="scene" data-weather="clear" data-picture="yosemite">
+                                <div class="initial-photo" id="scene-initial-photo">
+                                    <picture class="hero-photo">
+                                        <source id="scene-avif" type="image/avif" sizes="(max-width: 700px) 64vw, (max-width: 1128px) 57vw, 560px">
+                                        <source id="scene-webp" type="image/webp" sizes="(max-width: 700px) 64vw, (max-width: 1128px) 57vw, 560px">
+                                        <img id="scene-image" alt="Yosemite Valley example" width="1536" height="1024" fetchpriority="high" decoding="async">
+                                    </picture>
+                                    <picture class="hero-photo initial-photo-overlay" id="scene-initial-photo-overlay" aria-hidden="true">
+                                        <source id="scene-overlay-avif" type="image/avif" sizes="(max-width: 700px) 64vw, (max-width: 1128px) 57vw, 560px">
+                                        <source id="scene-overlay-webp" type="image/webp" sizes="(max-width: 700px) 64vw, (max-width: 1128px) 57vw, 560px">
+                                        <img id="scene-overlay-image" alt="" width="1536" height="1024" decoding="async">
+                                    </picture>
+                                </div>
+                                <noscript><img class="hero-photo-fallback" src="{{ asset('examples/yosemite-clear-day-1280.webp') }}?v={{ $photoRevision }}" alt="Yosemite Valley in daylight" width="1536" height="1024"></noscript>
+                                <canvas class="weather-scene-canvas" aria-hidden="true"></canvas>
+                                <span class="weather-scene-illumination" aria-hidden="true"></span>
+                            </div>
+                            <img class="device-frame" src="{{ asset('imac-frame.webp') }}" alt="" width="1500" height="1266" aria-hidden="true" fetchpriority="high">
                         </div>
-                        <script>
-                            {
-                                const sceneImage = document.getElementById('scene-image');
-                                const overlayImage = document.getElementById('scene-overlay-image');
-                                const photoContainer = document.getElementById('initial-photo');
-                                const overlay = document.getElementById('initial-photo-overlay');
-                                const neededImages = initialOverlayOpacity > 0 ? 2 : 1;
-                                let readyImages = 0;
+                        <div class="laptop-device">
+                            <div class="scene" id="bridge-scene" data-weather="clear" data-picture="bridge">
+                                <div class="initial-photo" id="bridge-initial-photo">
+                                    <picture class="hero-photo">
+                                        <source id="bridge-avif" type="image/avif" sizes="(max-width: 700px) 65vw, (max-width: 1128px) 42vw, 400px">
+                                        <source id="bridge-webp" type="image/webp" sizes="(max-width: 700px) 65vw, (max-width: 1128px) 42vw, 400px">
+                                        <img id="bridge-image" alt="Golden Gate Bridge example" width="1536" height="1024" decoding="async">
+                                    </picture>
+                                    <picture class="hero-photo initial-photo-overlay" id="bridge-initial-photo-overlay" aria-hidden="true">
+                                        <source id="bridge-overlay-avif" type="image/avif" sizes="(max-width: 700px) 65vw, (max-width: 1128px) 42vw, 400px">
+                                        <source id="bridge-overlay-webp" type="image/webp" sizes="(max-width: 700px) 65vw, (max-width: 1128px) 42vw, 400px">
+                                        <img id="bridge-overlay-image" alt="" width="1536" height="1024" decoding="async">
+                                    </picture>
+                                </div>
+                                <noscript><img class="hero-photo-fallback" src="{{ asset('examples/bridge-noon-1280.webp') }}?v={{ $photoRevision }}" alt="Golden Gate Bridge in daylight" width="1536" height="1024"></noscript>
+                                <canvas class="weather-scene-canvas" aria-hidden="true"></canvas>
+                                <span class="weather-scene-illumination" aria-hidden="true"></span>
+                            </div>
+                            <img class="device-frame" src="{{ asset('macbook-pro-frame.webp') }}" alt="" width="1500" height="920" aria-hidden="true">
+                        </div>
+                    </div>
+                    <script>
+                        function prepareInitialScene(prefix, selection) {
+                            const image = document.getElementById(prefix + '-image');
+                            const overlayImage = document.getElementById(prefix + '-overlay-image');
+                            const photoContainer = document.getElementById(prefix + '-initial-photo');
+                            const overlay = document.getElementById(prefix + '-initial-photo-overlay');
+                            const neededImages = selection.opacity > 0 ? 2 : 1;
+                            let readyImages = 0;
 
-                                function prepareInitialImage(image, frame, avifSource, webpSource) {
-                                    image.addEventListener('load', () => {
-                                        image.decode().catch(() => {}).finally(() => {
-                                            readyImages++;
-                                            if (readyImages === neededImages) {
-                                                photoContainer.classList.add('is-ready');
-                                            }
-                                        });
-                                    }, { once: true });
-                                    image.addEventListener('error', () => {
-                                        if (avifSource.srcset) {
-                                            avifSource.removeAttribute('srcset');
-                                            return;
-                                        }
-                                        readyImages++;
-                                        if (readyImages === neededImages) {
-                                            photoContainer.classList.add('is-ready');
-                                        }
-                                    });
-                                    avifSource.srcset = photoWidths.map(width => photoSource(frame.file, width, 'avif') + ' ' + width + 'w').join(', ');
-                                    webpSource.srcset = photoWidths.map(width => photoSource(frame.file, width, 'webp') + ' ' + width + 'w').join(', ');
-                                    image.src = photoSource(frame.file, 1280, 'webp');
-                                }
-
-                                prepareInitialImage(sceneImage, initialPhotoFrame, document.getElementById('scene-avif'), document.getElementById('scene-webp'));
-                                sceneImage.alt = initialNearestFrame.alt;
-                                overlay.style.opacity = initialOverlayOpacity;
-                                if (initialOverlayOpacity > 0) {
-                                    prepareInitialImage(overlayImage, initialOverlayFrame, document.getElementById('scene-overlay-avif'), document.getElementById('scene-overlay-webp'));
+                            function markReady() {
+                                readyImages++;
+                                if (readyImages === neededImages) {
+                                    photoContainer.classList.add('is-ready');
                                 }
                             }
-                        </script>
-                        <noscript><img class="hero-photo-fallback" src="{{ asset('examples/yosemite-clear-day-1280.webp') }}?v={{ $photoRevision }}" alt="Yosemite Valley in daylight" width="1536" height="1024"></noscript>
-                        <canvas id="weather-scene-canvas" class="weather-scene-canvas" aria-hidden="true"></canvas>
-                        <span class="weather-scene-illumination" aria-hidden="true"></span>
-                    </div>
+
+                            function prepareImage(target, frame, avifSource, webpSource) {
+                                target.addEventListener('load', () => target.decode().catch(() => {}).finally(markReady), { once: true });
+                                target.addEventListener('error', () => {
+                                    if (avifSource.srcset) {
+                                        avifSource.removeAttribute('srcset');
+                                        return;
+                                    }
+                                    markReady();
+                                });
+                                avifSource.srcset = photoWidths.map(width => photoSource(frame.file, width, 'avif') + ' ' + width + 'w').join(', ');
+                                webpSource.srcset = photoWidths.map(width => photoSource(frame.file, width, 'webp') + ' ' + width + 'w').join(', ');
+                                target.src = photoSource(frame.file, prefix === 'scene' ? 1280 : 960, 'webp');
+                            }
+
+                            prepareImage(image, selection.first, document.getElementById(prefix + '-avif'), document.getElementById(prefix + '-webp'));
+                            image.alt = selection.nearest.alt;
+                            overlay.style.opacity = selection.opacity;
+                            if (selection.opacity > 0) {
+                                prepareImage(overlayImage, selection.second, document.getElementById(prefix + '-overlay-avif'), document.getElementById(prefix + '-overlay-webp'));
+                            }
+                        }
+
+                        prepareInitialScene('scene', initialYosemite);
+                        prepareInitialScene('bridge', initialBridge);
+                    </script>
                     <div class="day-controls container">
                         <p id="scene-feedback" class="scene-feedback" role="status" hidden></p>
                         <div class="scene-caption">
@@ -174,7 +207,7 @@
                         </div>
                         <div class="time-selector">
                             <label class="sr-only" for="day-scrubber">Choose an hour of the day</label>
-                            <input id="day-scrubber" type="range" min="0" max="24" step="any" value="0" aria-controls="scene">
+                            <input id="day-scrubber" type="range" min="0" max="24" step="any" value="0" aria-controls="scene bridge-scene">
                             <div class="time-labels" aria-hidden="true"><span>Night</span><span>Morning</span><span>Afternoon</span><span>Evening</span><span>Night</span></div>
                         </div>
                         <div class="weather-buttons" role="group" aria-label="Choose weather">
@@ -191,10 +224,11 @@
                         const initialTime = formatExampleTime(initialFrame * 60);
                         document.getElementById('scene-time').textContent = initialTime;
                         document.getElementById('day-scrubber').value = initialFrame;
-                        document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', ' + initialNearestFrame.label.toLowerCase() + ' example');
-                        document.getElementById('scene').dataset.frame = initialNearestFrame.key;
+                        document.getElementById('day-scrubber').setAttribute('aria-valuetext', initialTime + ', clear weather example');
+                        document.getElementById('scene').dataset.frame = initialYosemite.nearest.key;
+                        document.getElementById('bridge-scene').dataset.frame = initialBridge.nearest.key;
                     </script>
-                    <noscript><p class="no-script-note">Yosemite Valley example. Enable JavaScript to explore the examples.</p></noscript>
+                    <noscript><p class="no-script-note">Enable JavaScript to explore both wallpaper examples.</p></noscript>
                 </figure>
             </section>
 
