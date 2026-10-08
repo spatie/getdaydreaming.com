@@ -38,6 +38,7 @@ class PublicPagesTest extends TestCase
             ->assertSeeText('90 days')
             ->assertSeeText('macOS Keychain')
             ->assertSeeText('Feature requests')
+            ->assertSeeText('computer name')
             ->assertSeeText('Codex desktop app');
 
         $this->get(route('changelog'))

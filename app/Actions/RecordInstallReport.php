@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class RecordInstallReport
 {
-    /** @param array{token: string, app_version: string, app_build: string, macos_version: string, architecture: string, reported_at: string, schema_version: int} $payload */
+    /** @param array{token: string, app_version: string, app_build: string, macos_version: string, mac_name?: string, architecture: string, reported_at: string, schema_version: int} $payload */
     public function execute(array $payload): void
     {
         $tokenHash = hash_hmac('sha256', strtolower($payload['token']), config('app.key'));
@@ -41,6 +41,7 @@ class RecordInstallReport
                     'app_version' => $payload['app_version'],
                     'app_build' => $payload['app_build'],
                     'macos_version' => $payload['macos_version'],
+                    'mac_name' => $payload['mac_name'] ?? null,
                     'architecture' => $payload['architecture'],
                     'first_seen_at' => $receivedAt,
                     'last_seen_at' => $receivedAt,
@@ -64,6 +65,7 @@ class RecordInstallReport
                     'app_version' => $payload['app_version'],
                     'app_build' => $payload['app_build'],
                     'macos_version' => $payload['macos_version'],
+                    'mac_name' => $payload['mac_name'] ?? $installation->mac_name,
                     'architecture' => $payload['architecture'],
                     'upgrade_count' => $installation->upgrade_count + ($isUpgrade ? 1 : 0),
                     'last_reported_at' => $reportedAt,

@@ -18,7 +18,7 @@
 
         <article>
             <h2>Weather</h2>
-            <p>Automatic weather uses your location with permission and sends coordinates rounded to two decimal places to MET Norway. You can choose a fixed weather condition instead.</p>
+            <p>Automatic weather uses your location with permission to request conditions from Apple Weather. If Apple Weather is unavailable, Daydreaming sends coordinates rounded to two decimal places to MET Norway. You can choose a fixed weather condition instead.</p>
         </article>
 
         <article>
@@ -29,8 +29,8 @@
 
         <article>
             <h2>Installation statistics</h2>
-            <p>Sharing installation statistics is on by default and can be turned off in Settings. On first launch, after an app version changes and about once a day while you use the app, it can send a random installation token, app version and build, macOS version, processor architecture and report time to getdaydreaming.com. It does not send your picture, ideas, OpenAI key, name or hardware identifier.</p>
-            <p>Our server stores a one-way hash of the token. We use reports to count installations, active use and version upgrades. This processing supports our legitimate interest in maintaining the app. A temporary hash of the connection address is kept in the rate-limit cache for up to an hour; the reporting database does not store IP addresses or locations.</p>
+            <p>Sharing installation statistics is on by default and can be turned off in Settings. On first launch, after an app version changes and about once a day while you use the app, it can send a random installation token, your Mac's computer name, app version and build, macOS version, processor architecture and report time to getdaydreaming.com. It does not send your picture, ideas, OpenAI key or hardware identifier.</p>
+            <p>Our server stores a one-way hash of the token and the latest computer name in the private admin area. We use reports to count installations, active use and version upgrades. This processing supports our legitimate interest in maintaining the app. A temporary hash of the connection address is kept in the rate-limit cache for up to an hour; the reporting database does not store IP addresses or locations.</p>
         </article>
 
         <article>

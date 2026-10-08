@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Installations\Pages\ListInstallations;
 use App\Filament\Widgets\InstallationStats;
 use App\Models\Installation;
 use App\Models\User;
@@ -44,6 +45,19 @@ class AdminAccessTest extends TestCase
             ->assertSee('Active in 7 days')
             ->assertSee('Installations upgraded')
             ->assertSee('1 version changes reported');
+    }
+
+    public function test_admin_can_find_an_installation_by_mac_name(): void
+    {
+        Config::set('services.admin.emails', ['owner@spatie.be']);
+        $user = User::factory()->create(['email' => 'owner@spatie.be', 'is_admin' => true]);
+        Installation::factory()->create(['mac_name' => 'Freek’s MacBook Pro']);
+
+        $this->actingAs($user);
+
+        Livewire::test(ListInstallations::class)
+            ->assertSee('Freek’s MacBook Pro')
+            ->assertSee('Last seen');
     }
 
     public function test_admin_command_refuses_emails_outside_the_allowlist(): void
