@@ -57,6 +57,37 @@ class InstallReportsTest extends TestCase
         $this->assertSame('1.1.0', $installation->app_version);
     }
 
+    public function test_new_reports_store_the_mac_name_while_older_reports_keep_working(): void
+    {
+        $token = (string) Str::uuid();
+
+        $this->postJson(route('installReports.store'), $this->report([
+            'token' => $token,
+        ]))->assertStatus(202);
+
+        $installation = Installation::query()->firstOrFail();
+        $this->assertNull($installation->mac_name);
+
+        $this->postJson(route('installReports.store'), $this->report([
+            'token' => $token,
+            'app_version' => '0.9.0',
+            'app_build' => '53',
+            'mac_name' => 'Freek’s MacBook Pro',
+            'schema_version' => 2,
+        ]))->assertStatus(202);
+
+        $this->assertSame('Freek’s MacBook Pro', $installation->fresh()->mac_name);
+
+        $this->travel(1)->day();
+        $this->postJson(route('installReports.store'), $this->report([
+            'token' => $token,
+            'app_version' => '0.9.1',
+            'app_build' => '54',
+        ]))->assertStatus(202);
+
+        $this->assertSame('Freek’s MacBook Pro', $installation->fresh()->mac_name);
+    }
+
     public function test_invalid_or_extra_fields_are_rejected(): void
     {
         $this->postJson(route('installReports.store'), $this->report([
@@ -67,8 +98,21 @@ class InstallReportsTest extends TestCase
 
         $this->postJson(route('installReports.store'), $this->report([
             'reported_at' => now()->format('Y-m-d\TH:i:sP'),
-            'schema_version' => 2,
+            'schema_version' => 3,
         ]))->assertStatus(422)->assertJsonValidationErrors(['reported_at', 'schema_version']);
+
+        $this->postJson(route('installReports.store'), $this->report([
+            'schema_version' => 2,
+        ]))->assertStatus(422)->assertJsonValidationErrors('mac_name');
+
+        $this->postJson(route('installReports.store'), $this->report([
+            'schema_version' => 2,
+            'mac_name' => "Mac\nName",
+        ]))->assertStatus(422)->assertJsonValidationErrors('mac_name');
+
+        $this->postJson(route('installReports.store'), $this->report([
+            'mac_name' => 'Unexpected Mac',
+        ]))->assertStatus(422)->assertJsonValidationErrors('mac_name');
 
         $this->postJson(route('installReports.store'), $this->report([
             'token' => '123e4567-e89b-12d3-a456-426614174000',
