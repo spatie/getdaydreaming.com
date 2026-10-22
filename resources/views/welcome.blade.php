@@ -8,14 +8,15 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="Daydreaming for Mac">
     <meta property="og:description" content="Your picture, made into Mac wallpapers that match the time of day and local weather.">
-    <meta property="og:image" content="{{ asset('daydreaming-social-20261007.jpg') }}">
+    <meta property="og:image" content="{{ asset('daydreaming-social-20261022.jpg') }}">
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:url" content="{{ route('home') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="See your old wallpaper in a new light. Daydreaming for Mac over an evening view of the Golden Gate Bridge.">
+    <meta property="og:image:alt" content="Daydreaming for Mac. Your wallpaper. Any time. Any weather. Yosemite Valley in sunshine, evening light, and snow.">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="{{ asset('daydreaming-social-20261007.jpg') }}">
+    <meta name="twitter:image" content="{{ asset('daydreaming-social-20261022.jpg') }}">
+    <meta name="twitter:image:alt" content="Daydreaming for Mac. Your wallpaper. Any time. Any weather. Yosemite Valley in sunshine, evening light, and snow.">
     <link rel="canonical" href="{{ route('home') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">

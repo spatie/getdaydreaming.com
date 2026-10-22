@@ -79,7 +79,6 @@ class HomepageTest extends TestCase
             ->assertSee('favicon.svg')
             ->assertSee('site.webmanifest')
             ->assertSee('apple-touch-icon.png')
-            ->assertSee('daydreaming-social-20261007.jpg')
             ->assertSeeText('Download soon')
             ->assertDontSee('$', false)
             ->assertDontSee('Buy now')
@@ -99,6 +98,32 @@ class HomepageTest extends TestCase
             ->assertOk()
             ->assertHeaderMissing('Set-Cookie')
             ->assertHeader('Cache-Control', 'max-age=60, public, s-maxage=60');
+    }
+
+    public function test_social_cards_use_the_dedicated_share_image(): void
+    {
+        $image = 'daydreaming-social-20261022.jpg';
+        $imageUrl = asset($image);
+        $imageDescription = 'Daydreaming for Mac. Your wallpaper. Any time. Any weather. Yosemite Valley in sunshine, evening light, and snow.';
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="'.$imageUrl.'">', false)
+            ->assertSee('<meta property="og:image:type" content="image/jpeg">', false)
+            ->assertSee('<meta property="og:image:width" content="1200">', false)
+            ->assertSee('<meta property="og:image:height" content="630">', false)
+            ->assertSee('<meta property="og:image:alt" content="'.$imageDescription.'">', false)
+            ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+            ->assertSee('<meta name="twitter:image" content="'.$imageUrl.'">', false)
+            ->assertSee('<meta name="twitter:image:alt" content="'.$imageDescription.'">', false)
+            ->assertDontSee('daydreaming-social-20261007.jpg');
+
+        $this->assertFileExists(public_path($image));
+        $imageSize = getimagesize(public_path($image));
+        $this->assertSame(1200, $imageSize[0]);
+        $this->assertSame(630, $imageSize[1]);
+        $this->assertSame('image/jpeg', $imageSize['mime']);
+        $this->assertLessThan(300000, filesize(public_path($image)));
     }
 
     public function test_credits_page_preserves_weather_and_photo_attributions(): void
@@ -169,7 +194,6 @@ class HomepageTest extends TestCase
         }
         $this->assertFileExists(public_path('favicon.ico'));
         $this->assertFileExists(public_path('icon-maskable-512.png'));
-        $this->assertFileExists(public_path('daydreaming-social-20261007.jpg'));
         $this->assertFileExists(public_path('imac-frame.webp'));
         $this->assertFileExists(public_path('macbook-pro-frame.webp'));
         foreach (['light', 'dark'] as $appearance) {
