@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630">
+    <title>Daydreaming for Mac</title>
+    <desc>Your wallpaper. Any time. Any weather. Yosemite Valley in sunshine, evening light, and snow.</desc>
+    <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#fff5d7"/>
+            <stop offset=".38" stop-color="#ffdcc5"/>
+            <stop offset=".7" stop-color="#e5dafa"/>
+            <stop offset="1" stop-color="#d2e8f5"/>
+        </linearGradient>
+        <clipPath id="sunny"><rect x="48" y="350" width="360" height="240" rx="16"/></clipPath>
+        <clipPath id="evening"><rect x="420" y="350" width="360" height="240" rx="16"/></clipPath>
+        <clipPath id="snowy"><rect x="792" y="350" width="360" height="240" rx="16"/></clipPath>
+    </defs>
+    <rect width="1200" height="630" fill="url(#sky)"/>
+    <g fill="#18394a" font-family="Arial, sans-serif">
+        <image xlink:href="../public/daydreaming-icon.png" x="48" y="42" width="96" height="96"/>
+        <text x="164" y="114" font-size="96" font-weight="700" letter-spacing="-3">Daydreaming</text>
+        <text x="902" y="112" font-size="60">for Mac</text>
+        <text x="48" y="234" font-size="68" font-weight="700" letter-spacing="-2">Your wallpaper.</text>
+        <text x="48" y="310" font-size="68" font-weight="700" letter-spacing="-2">Any time. Any weather.</text>
+        <image xlink:href="../public/examples/yosemite-clear-day-1280.webp" x="48" y="350" width="360" height="240" preserveAspectRatio="xMidYMid slice" clip-path="url(#sunny)"/>
+        <image xlink:href="../public/examples/yosemite-clear-evening-1280.webp" x="420" y="350" width="360" height="240" preserveAspectRatio="xMidYMid slice" clip-path="url(#evening)"/>
+        <image xlink:href="../public/examples/yosemite-snow-day-1280.webp" x="792" y="350" width="360" height="240" preserveAspectRatio="xMidYMid slice" clip-path="url(#snowy)"/>
+    </g>
+</svg>

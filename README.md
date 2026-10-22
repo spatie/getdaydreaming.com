@@ -2,7 +2,7 @@
 
 The source for [getdaydreaming.com](https://getdaydreaming.com), the website for [Daydreaming for Mac](https://github.com/spatie/daydreaming-app). Daydreaming turns a picture into wallpapers that follow the time of day and local weather.
 
-![Daydreaming website preview](public/daydreaming-social-20261007.jpg)
+![Daydreaming for Mac: your wallpaper in sunshine, evening light, and snow](public/daydreaming-social-20261022.jpg)
 
 This Laravel application serves the interactive landing page, support and privacy pages, app downloads, release notes, and the signed appcast used for updates. It also accepts installation reports and feature suggestions from the Mac app. A Filament admin panel shows those submissions and installation statistics.
 
