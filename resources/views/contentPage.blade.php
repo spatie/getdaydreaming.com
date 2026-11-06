@@ -23,7 +23,13 @@
             <nav aria-label="Main navigation"><a href="{{ route('home') }}">Back to home</a></nav>
         </header>
         <main id="main" tabindex="-1">
-            <section class="content-page container section" aria-labelledby="page-title">
+            <section class="content-page content-layout container section" aria-labelledby="page-title">
+                <nav class="page-nav" aria-label="Site pages">
+                    <p>Daydreaming for Mac</p>
+                    @foreach(['support' => 'Support', 'changelog' => 'Changelog', 'privacy' => 'Privacy', 'credits' => 'Credits'] as $page => $label)
+                        <a href="{{ route($page) }}" @if(request()->routeIs($page)) aria-current="page" @endif>{{ $label }}<span aria-hidden="true">→</span></a>
+                    @endforeach
+                </nav>
                 @yield('content')
             </section>
         </main>

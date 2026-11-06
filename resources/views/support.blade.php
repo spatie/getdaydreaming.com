@@ -9,9 +9,16 @@
         <h1 id="page-title">Support.</h1>
         <p class="page-lede">Questions, bugs and ideas are welcome. The people building Daydreaming read your messages.</p>
 
-        <article>
+        <article class="support-contact">
             <h2>Email us</h2>
-            <p>Write to <a href="mailto:support@spatie.be?subject=Daydreaming%20support">support@spatie.be</a>. If something broke, tell us what you expected, what happened, your Daydreaming version and your macOS version. Please leave your OpenAI API key out of the message.</p>
+            <p><a class="contact-link" href="mailto:support@spatie.be?subject=Daydreaming%20support">support@spatie.be <span aria-hidden="true">↗</span></a></p>
+            <p>If something broke, include:</p>
+            <ul class="support-checklist">
+                <li>What you expected and what happened</li>
+                <li>Your Daydreaming version</li>
+                <li>Your macOS version</li>
+            </ul>
+            <p class="support-note">Keep your OpenAI API key out of the message.</p>
         </article>
 
         <article>

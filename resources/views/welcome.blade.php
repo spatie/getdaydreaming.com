@@ -116,7 +116,11 @@
                 </div>
                 <div class="hero-copy container">
                     <h1 id="hero-title">See your old wallpaper in a new light.</h1>
-                    <p class="hero-description">Daydreaming uses AI to match your picture to the time and local weather, then sets it as your Mac wallpaper.</p>
+                    <div class="hero-description">
+                        <p>Daydreaming uses AI to match your picture to the time and local weather, then sets it as your Mac wallpaper.</p>
+                        <p class="hero-requirements">Free for macOS 26+. Uses your own OpenAI API key.</p>
+                        <a class="text-action" href="#how-it-works">How it works <span aria-hidden="true">↓</span></a>
+                    </div>
                 </div>
 
                 <figure class="preview" id="preview">
@@ -248,6 +252,7 @@
                         document.getElementById('bridge-scene').dataset.frame = initialBridge.nearest.key;
                     </script>
                     <noscript><p class="no-script-note">Enable JavaScript to explore both wallpaper examples.</p></noscript>
+                    <p class="preview-hint">Try a different time or weather. Both wallpapers follow along.</p>
                 </figure>
             </section>
 
@@ -361,6 +366,7 @@
             <section class="faq container section" id="questions" aria-labelledby="faq-title">
                 <div class="section-heading">
                     <h2 id="faq-title">Questions?</h2>
+                    <p>Can’t find your answer?<br><a class="text-action" href="{{ route('support') }}">Get in touch <span aria-hidden="true">→</span></a></p>
                 </div>
                 <div class="faq-list">
                     <details>

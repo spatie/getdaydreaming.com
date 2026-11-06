@@ -26,6 +26,7 @@
             <div class="content-empty">
                 <h2>No public releases yet.</h2>
                 <p>Release notes will appear here when the first download is available.</p>
+                <a class="text-action" href="{{ route('home') }}">Explore Daydreaming <span aria-hidden="true">→</span></a>
             </div>
         @endforelse
     </div>
