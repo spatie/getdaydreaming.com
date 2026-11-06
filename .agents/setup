@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+export APP_ENV=local
+export DB_CONNECTION=sqlite
+export DB_DATABASE="$PWD/database/database.sqlite"
+export DB_URL=
+
+echo 'Preparing PHP 8.5 and Composer'
+if ! command -v php >/dev/null 2>&1 || ! php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'; then
+    sudo curl --fail --silent --show-error --location https://download.herdphp.com/herd-lite/linux/x64/8.5/php -o /usr/local/bin/php
+    sudo chmod +x /usr/local/bin/php
+fi
+
+if ! command -v composer >/dev/null 2>&1; then
+    sudo curl --fail --silent --show-error --location https://download.herdphp.com/herd-lite/composer -o /usr/local/bin/composer
+    sudo chmod +x /usr/local/bin/composer
+fi
+
+php --version
+composer --version
+
+echo 'Installing PHP dependencies'
+time composer install --no-interaction --prefer-dist
+
+echo 'Preparing the local Laravel environment'
+if [ ! -f .env ]; then
+    cp -- .env.example .env
+fi
+
+php artisan config:clear --no-interaction
+if ! php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); exit(config("app.key") ? 0 : 1);'; then
+    php artisan key:generate --no-interaction
+fi
+
+touch "$DB_DATABASE"
+time php artisan migrate --no-interaction
+
+echo 'Installing frontend dependencies and building assets'
+time npm ci --ignore-scripts
+time npm run build

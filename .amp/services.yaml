@@ -1,0 +1,16 @@
+services:
+  web:
+    command: >-
+      export DB_DATABASE="$PWD/database/database.sqlite" &&
+      php artisan optimize:clear --no-interaction &&
+      APP_URL="$PUBLIC_URL" ASSET_URL="$PUBLIC_URL"
+      php artisan serve --host=0.0.0.0 --port="$PORT" --no-reload --no-interaction
+    env:
+      APP_ENV: local
+      DB_CONNECTION: sqlite
+      DB_URL: ""
+      HTTPS: "on"
+    health: /
+    portal:
+      title: Daydreaming
+      description: Laravel preview with built assets and local SQLite. No production credentials required.
