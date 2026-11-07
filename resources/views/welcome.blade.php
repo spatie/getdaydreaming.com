@@ -323,6 +323,7 @@
                     <h2 id="makers-title">Meet the dreamer.</h2>
                     <p>I'm Freek, a developer and partner at Spatie. I build tools for developers, write about what I learn, and make personal projects for the Mac and the web.</p>
                     <p>Daydreaming is one of them. It keeps the wallpaper you chose and lets the light and weather around it change through the day.</p>
+                    <p>I also made <a href="https://getcornered.app">Cornered</a>, a strategy board game for friends.</p>
                     <p>Daydreaming is free and postcardware. A postcard is entirely optional. <a href="{{ route('support') }}#postcardware">Here is where to send one.</a></p>
                 </div>
                 <div class="maker-card">
